@@ -32,6 +32,7 @@ import java.awt.event.KeyEvent;
 public class LoginPanel extends JPanel {
 
     private static final int LARGEUR_CHAMP = 280;
+    private int tentativesEchouees = 0;
 
     public LoginPanel(MainFrame parent) {
         super(new GridBagLayout());
@@ -114,19 +115,33 @@ public class LoginPanel extends JPanel {
 
         // ── Action de connexion ────────────────────────────────────────────────
         Runnable actionConnexion = () -> {
-            String numero = champCompte.getText().trim();
+            if (tentativesEchouees >= 3) {
+                return;
+            }
 
-            if (numero.isEmpty()) {
-                labelErreur.setText("Veuillez saisir un numéro de compte.");
+            String numero = champCompte.getText().trim();
+            String mdp = new String(champMdp.getPassword());
+
+            if (numero.isEmpty() || mdp.isEmpty()) {
+                labelErreur.setText("Veuillez saisir le compte et le mot de passe.");
                 return;
             }
 
             try {
                 Compte compte = service.rechercherCompte(numero);
+                tentativesEchouees = 0;
                 parent.definirCompteConnecte(compte);
                 parent.afficherCarte(MainFrame.CARTE_ACCUEIL);
             } catch (MobileMoneyException e) {
-                labelErreur.setText(e.getMessage());
+                tentativesEchouees++;
+                if (tentativesEchouees >= 3) {
+                    labelErreur.setText("Erreur : Bouton bloqué après 3 tentatives.");
+                    btnConnexion.setEnabled(false);
+                    btnConnexion.setBackground(Theme.TEXTE_GRIS);
+                } else {
+                    int restants = 3 - tentativesEchouees;
+                    labelErreur.setText(e.getMessage() + " (" + restants + " essai(s) restant(s))");
+                }
             }
         };
 

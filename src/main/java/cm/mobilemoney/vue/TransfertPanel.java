@@ -179,6 +179,11 @@ public class TransfertPanel extends JPanel {
             return;
         }
 
+        if (montant % 500 != 0) {
+            afficherErreur("Le montant doit être un multiple de 500 FCFA.");
+            return;
+        }
+
         this.sourceConfirmee = source;
         this.destinationConfirmee = destination;
         this.montantConfirme = montant;
