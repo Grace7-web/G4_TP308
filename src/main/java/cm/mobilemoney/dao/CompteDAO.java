@@ -15,24 +15,32 @@ import java.util.List;
  * Toutes les opérations utilisent PreparedStatement (Semaine 8).
  * Le transfert utilise setAutoCommit(false) + rollback (Semaine 5).
  *
+ * MISE À JOUR : gestion des colonnes mot_de_passe, question_secrete
+ * et reponse_secrete (fonctionnalité de récupération de mot de passe).
+ * Ces colonnes doivent exister en base — voir sql/migration_mot_de_passe.sql.
+ *
  * @author Équipe Persistance & Données — Projet 4
  */
 public class CompteDAO implements ICompteDAO {
 
-    // ──────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────
     // CRUD COMPTES
-    // ──────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────
 
     @Override
     public void insererCompte(Compte compte) throws MobileMoneyException {
-        String sql = "INSERT INTO comptes (numero, titulaire, solde) " +
-                "VALUES (?, ?, ?)";
+        String sql = "INSERT INTO comptes " +
+                "(numero, titulaire, solde, mot_de_passe, question_secrete, reponse_secrete) " +
+                "VALUES (?, ?, ?, ?, ?, ?)";
         try (Connection conn = ConnexionDB.getConnexion();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, compte.getNumero());
             ps.setString(2, compte.getTitulaire());
             ps.setDouble(3, compte.getSolde());
+            ps.setString(4, compte.getMotDePasseHash());
+            ps.setString(5, compte.getQuestionSecrete());
+            ps.setString(6, compte.getReponseSecreteHash());
             ps.executeUpdate();
 
         } catch (SQLException e) {
@@ -50,11 +58,7 @@ public class CompteDAO implements ICompteDAO {
             ps.setString(1, numero);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return new Compte(
-                            rs.getString("numero"),
-                            rs.getString("titulaire"),
-                            rs.getDouble("solde")
-                    );
+                    return mapperCompte(rs);
                 }
             }
         } catch (SQLException e) {
@@ -73,11 +77,7 @@ public class CompteDAO implements ICompteDAO {
              ResultSet rs = st.executeQuery(sql)) {
 
             while (rs.next()) {
-                liste.add(new Compte(
-                        rs.getString("numero"),
-                        rs.getString("titulaire"),
-                        rs.getDouble("solde")
-                ));
+                liste.add(mapperCompte(rs));
             }
         } catch (SQLException e) {
             throw new MobileMoneyException(
@@ -120,9 +120,26 @@ public class CompteDAO implements ICompteDAO {
         }
     }
 
-    // ──────────────────────────────────────────
+    @Override
+    public void mettreAJourMotDePasse(String numero, String motDePasseHash)
+            throws MobileMoneyException {
+        String sql = "UPDATE comptes SET mot_de_passe = ? WHERE numero = ?";
+        try (Connection conn = ConnexionDB.getConnexion();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, motDePasseHash);
+            ps.setString(2, numero);
+            ps.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new MobileMoneyException(
+                    "Erreur mise à jour mot de passe : " + e.getMessage(), e);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
     // TRANSACTIONS
-    // ──────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────
 
     @Override
     public void enregistrerTransaction(Transaction t)
@@ -262,5 +279,25 @@ public class CompteDAO implements ICompteDAO {
                     "Erreur lecture toutes transactions : " + e.getMessage(), e);
         }
         return liste;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // UTILITAIRE PRIVÉ
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Construit un objet Compte à partir de la ligne courante d'un ResultSet.
+     * Centralise le mapping pour éviter la duplication entre trouverParNumero
+     * et lireTous, et pour inclure proprement les colonnes de sécurité.
+     */
+    private Compte mapperCompte(ResultSet rs) throws SQLException {
+        return new Compte(
+                rs.getString("numero"),
+                rs.getString("titulaire"),
+                rs.getDouble("solde"),
+                rs.getString("mot_de_passe"),
+                rs.getString("question_secrete"),
+                rs.getString("reponse_secrete")
+        );
     }
 }

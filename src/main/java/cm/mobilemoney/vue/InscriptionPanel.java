@@ -8,31 +8,25 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
-/**
- * Écran d'inscription permettant de créer un nouveau compte Mobile Money.
- *
- * Champs demandés : Nom complet, Téléphone, Mot de passe, Dépôt initial.
- *
- * ⚠️ NOTE IMPORTANTE POUR L'ÉQUIPE PERSISTANCE :
- * La classe métier {@code Compte} ne contient actuellement que
- * (numero, titulaire, solde, dateCreation, actif) — pas de téléphone
- * ni de mot de passe. Ces deux champs sont donc collectés ici à titre
- * d'ergonomie/démonstration mais ne sont PAS persistés pour l'instant.
- * Si l'authentification par mot de passe est requise dans la version
- * finale, il faudra étendre Compte + ICompteDAO en conséquence.
- *
- * Seuls le nom et le dépôt initial sont transmis à
- * {@code ICompteService.creerCompte(titulaire, soldeInitial)}.
- *
- * @author Équipe IHM Swing — Projet 4
- */
+
 public class InscriptionPanel extends JPanel {
 
     private static final int LARGEUR_CHAMP = 300;
 
+    private static final String[] QUESTIONS_SECRETES = {
+            "Quel est le nom de votre premier animal de compagnie ?",
+            "Quelle est votre ville de naissance ?",
+            "Quel est le prénom de votre mère ?",
+            "Quel est le nom de votre école primaire ?",
+            "Quel est votre plat préféré ?"
+    };
+
     private final JTextField champNom = new JTextField();
     private final JTextField champTelephone = new JTextField();
     private final JPasswordField champMdp = new JPasswordField();
+    private final JPasswordField champConfirmationMdp = new JPasswordField();
+    private final JComboBox<String> comboQuestionSecrete = new JComboBox<>(QUESTIONS_SECRETES);
+    private final JTextField champReponseSecrete = new JTextField();
     private final JTextField champDepotInitial = new JTextField();
     private final JLabel labelMessage = new JLabel(" ");
 
@@ -66,7 +60,14 @@ public class InscriptionPanel extends JPanel {
         styliserChamp(champNom);
         styliserChamp(champTelephone);
         styliserChamp(champMdp);
+        styliserChamp(champConfirmationMdp);
+        styliserChamp(champReponseSecrete);
         styliserChamp(champDepotInitial);
+
+        comboQuestionSecrete.setMaximumSize(new Dimension(LARGEUR_CHAMP, 34));
+        comboQuestionSecrete.setPreferredSize(new Dimension(LARGEUR_CHAMP, 34));
+        comboQuestionSecrete.setAlignmentX(Component.CENTER_ALIGNMENT);
+        comboQuestionSecrete.setFont(new Font("Segoe UI", Font.PLAIN, 12));
 
         labelMessage.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         labelMessage.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -113,6 +114,18 @@ public class InscriptionPanel extends JPanel {
         carte.add(Box.createVerticalStrut(5));
         carte.add(champMdp);
         carte.add(Box.createVerticalStrut(14));
+        carte.add(creerLabelChamp("Confirmer le mot de passe"));
+        carte.add(Box.createVerticalStrut(5));
+        carte.add(champConfirmationMdp);
+        carte.add(Box.createVerticalStrut(14));
+        carte.add(creerLabelChamp("Question secrète (pour récupération)"));
+        carte.add(Box.createVerticalStrut(5));
+        carte.add(comboQuestionSecrete);
+        carte.add(Box.createVerticalStrut(14));
+        carte.add(creerLabelChamp("Votre réponse"));
+        carte.add(Box.createVerticalStrut(5));
+        carte.add(champReponseSecrete);
+        carte.add(Box.createVerticalStrut(14));
         carte.add(creerLabelChamp("Dépôt initial (FCFA, min. " + (int) Compte.SOLDE_MINIMUM + ")"));
         carte.add(Box.createVerticalStrut(5));
         carte.add(champDepotInitial);
@@ -123,17 +136,27 @@ public class InscriptionPanel extends JPanel {
         carte.add(Box.createVerticalStrut(10));
         carte.add(btnRetour);
 
-        add(carte);
+        JScrollPane defilement = new JScrollPane(carte);
+        defilement.setBorder(BorderFactory.createEmptyBorder());
+        defilement.getVerticalScrollBar().setUnitIncrement(16);
+        defilement.setOpaque(false);
+        defilement.getViewport().setOpaque(false);
+
+       GridBagConstraints gbc = new GridBagConstraints();
+       gbc.fill = GridBagConstraints.BOTH;
+       gbc.weightx = 1;
+       gbc.weighty = 1;
+       add(defilement, gbc);
     }
 
-    /**
-     * Valide les champs saisis et crée le compte via le service métier.
-     * Le téléphone et le mot de passe sont collectés mais non transmis
-     * au service (non supportés par la classe Compte actuelle).
-     */
+    
     private void creerCompte(ICompteService service, MainFrame parent) {
         String nom = champNom.getText().trim();
         String telephone = champTelephone.getText().trim();
+        String mdp = new String(champMdp.getPassword());
+        String confirmationMdp = new String(champConfirmationMdp.getPassword());
+        String question = (String) comboQuestionSecrete.getSelectedItem();
+        String reponse = champReponseSecrete.getText().trim();
         String depotTexte = champDepotInitial.getText().trim();
 
         if (nom.isEmpty()) {
@@ -142,6 +165,22 @@ public class InscriptionPanel extends JPanel {
         }
         if (telephone.isEmpty()) {
             afficherErreur("Le numéro de téléphone est obligatoire.");
+            return;
+        }
+        if (mdp.isEmpty()) {
+            afficherErreur("Le mot de passe est obligatoire.");
+            return;
+        }
+        if (mdp.length() < 4) {
+            afficherErreur("Le mot de passe doit contenir au moins 4 caractères.");
+            return;
+        }
+        if (!mdp.equals(confirmationMdp)) {
+            afficherErreur("Les deux mots de passe ne correspondent pas.");
+            return;
+        }
+        if (reponse.isEmpty()) {
+            afficherErreur("Veuillez répondre à la question secrète.");
             return;
         }
         if (depotTexte.isEmpty()) {
@@ -158,7 +197,7 @@ public class InscriptionPanel extends JPanel {
         }
 
         try {
-            Compte nouveauCompte = service.creerCompte(nom, depotInitial);
+            Compte nouveauCompte = service.creerCompte(nom, depotInitial, mdp, question, reponse);
 
             JOptionPane.showMessageDialog(
                     this,

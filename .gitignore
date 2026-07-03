@@ -36,3 +36,5 @@ build/
 
 ### Mac OS ###
 .DS_Store
+/JavaApplication8/nbproject/private/
+/TP ict308 G4/nbproject/private/

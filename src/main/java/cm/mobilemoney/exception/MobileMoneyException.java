@@ -9,7 +9,8 @@ package cm.mobilemoney.exception;
  *     ├── CompteInexistantException
  *     ├── CompteInactifException
  *     ├── MontantInvalideException
- *     └── LimiteTransactionException
+ *     ├── LimiteTransactionException
+ *     └── AuthentificationException   (mot de passe / réponse secrète invalide)
  *
  * Toutes sont des checked exceptions (extends Exception) pour forcer
  * l'équipe DAO et l'équipe IHM à les capturer explicitement.
@@ -29,9 +30,9 @@ public class MobileMoneyException extends Exception {
         super(message, cause);
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════
     // 1. Solde insuffisant
-    // ══════════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════
 
     /**
      * Levée lorsque le solde du compte source est insuffisant pour
@@ -60,9 +61,9 @@ public class MobileMoneyException extends Exception {
         public double getDeficit()       { return montantRequis - soldeActuel; }
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════
     // 2. Compte inexistant
-    // ══════════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════
 
     /**
      * Levée lorsqu'un numéro de compte ne correspond à aucun enregistrement
@@ -82,9 +83,9 @@ public class MobileMoneyException extends Exception {
         public String getNumeroCompte() { return numeroCompte; }
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════
     // 3. Compte inactif / bloqué
-    // ══════════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════
 
     /**
      * Levée lorsqu'une opération est tentée sur un compte désactivé ou bloqué
@@ -105,9 +106,9 @@ public class MobileMoneyException extends Exception {
         public String getNumeroCompte() { return numeroCompte; }
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════
     // 4. Montant invalide
-    // ══════════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════
 
     /**
      * Levée lorsque le montant saisi ne respecte pas les contraintes métier :
@@ -129,9 +130,9 @@ public class MobileMoneyException extends Exception {
         public double getMontantSaisi() { return montantSaisi; }
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════
     // 5. Limite de transaction dépassée
-    // ══════════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════
 
     /**
      * Levée lorsque le montant d'une opération dépasse les plafonds
@@ -157,5 +158,22 @@ public class MobileMoneyException extends Exception {
         public double getMontantDemande()  { return montantDemande; }
         public double getPlafondAutorise() { return plafondAutorise; }
     }
-}
 
+    // ═══════════════════════════════════════════════════════════════
+    // 6. Authentification échouée (mot de passe / réponse secrète)
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Levée lorsque le mot de passe saisi est incorrect, qu'aucune question
+     * secrète n'est définie pour le compte, ou que la réponse secrète
+     * fournie lors de la récupération est incorrecte.
+     */
+    public static class AuthentificationException extends MobileMoneyException {
+
+        private static final long serialVersionUID = 1L;
+
+        public AuthentificationException(String message) {
+            super(message);
+        }
+    }
+}

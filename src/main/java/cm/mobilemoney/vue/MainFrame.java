@@ -13,12 +13,15 @@ import java.util.Map;
  * Fenêtre principale de l'application Mobile Money.
  *
  * Architecture de navigation :
- *  - Une JMenuBar (cachée sur les écrans publics Login/Inscription)
+ *  - Une JMenuBar (cachée sur les écrans publics Login/Inscription/MdpOublié)
  *  - Une zone centrale gérée par un CardLayout
- *  - Écrans statiques (construits une fois) : Login, Inscription, Accueil
- *  - Écrans dynamiques (reconstruits à chaque visite) : Dépôt, Retrait,
- *    Transfert, Historique, ListeComptes, CreerCompte
- *    (rebuild nécessaire pour que le compte connecté soit bien pris en compte)
+ *  - Écrans statiques (construits une fois) : Login, Accueil
+ *  - Écrans dynamiques (reconstruits à chaque visite) : Inscription, MdpOublié,
+ *    Dépôt, Retrait, Transfert, Historique, ListeComptes, CreerCompte
+ *    (rebuild nécessaire pour repartir d'un état propre à chaque visite)
+ *
+ * MISE À JOUR : ajout de la carte CARTE_MDP_OUBLIE pour l'écran de
+ * récupération de mot de passe (voir {@link MotDePasseOubliePanel}).
  *
  * @author Équipe IHM Swing — Projet 4
  */
@@ -26,6 +29,7 @@ public class MainFrame extends JFrame {
 
     public static final String CARTE_LOGIN         = "LOGIN";
     public static final String CARTE_INSCRIPTION   = "INSCRIPTION";
+    public static final String CARTE_MDP_OUBLIE    = "MDP_OUBLIE";
     public static final String CARTE_ACCUEIL       = "ACCUEIL";
     public static final String CARTE_DEPOT         = "DEPOT";
     public static final String CARTE_RETRAIT       = "RETRAIT";
@@ -65,10 +69,9 @@ public class MainFrame extends JFrame {
         cardLayout = new CardLayout();
         panneauPrincipal = new JPanel(cardLayout);
 
-        panneauPrincipal.add(new LoginPanel(this),        CARTE_LOGIN);
-        panneauPrincipal.add(new InscriptionPanel(this),  CARTE_INSCRIPTION);
+        panneauPrincipal.add(new LoginPanel(this), CARTE_LOGIN);
         accueilPanel = new AccueilPanel(this);
-        panneauPrincipal.add(accueilPanel,                CARTE_ACCUEIL);
+        panneauPrincipal.add(accueilPanel, CARTE_ACCUEIL);
 
         labelStatut = new JLabel("  Veuillez vous connecter.");
         labelStatut.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
@@ -83,7 +86,7 @@ public class MainFrame extends JFrame {
         afficherCarte(CARTE_LOGIN);
     }
 
-    // ── Menus ─────────────────────────────────────────────────────────────────
+    // ── Menus ──────────────────────────────────────────────────────────
 
     private JMenuBar creerBarreMenus() {
         JMenuBar barre = new JMenuBar();
@@ -171,15 +174,20 @@ public class MainFrame extends JFrame {
         return menu;
     }
 
-    // ── Navigation ────────────────────────────────────────────────────────────
+    // ── Navigation ────────────────────────────────────────────────────
 
     public void afficherCarte(String nomCarte) {
         boolean ecranPublic = CARTE_LOGIN.equals(nomCarte)
-                || CARTE_INSCRIPTION.equals(nomCarte);
+                || CARTE_INSCRIPTION.equals(nomCarte)
+                || CARTE_MDP_OUBLIE.equals(nomCarte);
         barreMenus.setVisible(!ecranPublic);
 
         switch (nomCarte) {
             case CARTE_ACCUEIL -> accueilPanel.rafraichir(compteConnecte);
+            case CARTE_INSCRIPTION ->
+                    reconstruire(nomCarte, new InscriptionPanel(this));
+            case CARTE_MDP_OUBLIE ->
+                    reconstruire(nomCarte, new MotDePasseOubliePanel(this));
             case CARTE_DEPOT ->
                     reconstruire(nomCarte, new DepotPanel(this));
             case CARTE_RETRAIT ->
@@ -196,6 +204,7 @@ public class MainFrame extends JFrame {
         }
 
         cardLayout.show(panneauPrincipal, nomCarte);
+        panneauPrincipal.repaint(); 
         definirStatut(libelleStatut(nomCarte));
     }
 
@@ -207,12 +216,14 @@ public class MainFrame extends JFrame {
         panneauPrincipal.add(nouveauPanel, nomCarte);
         cartesDynamiques.put(nomCarte, nouveauPanel);
         panneauPrincipal.revalidate();
+        panneauPrincipal.repaint();
     }
 
     private String libelleStatut(String nomCarte) {
         return switch (nomCarte) {
             case CARTE_LOGIN -> "Veuillez vous connecter.";
             case CARTE_INSCRIPTION -> "Création d'un nouveau compte.";
+            case CARTE_MDP_OUBLIE -> "Récupération du mot de passe.";
             case CARTE_ACCUEIL -> compteConnecte != null
                     ? "Connecté en tant que " + compteConnecte.getTitulaire()
                     : "Mode invité";

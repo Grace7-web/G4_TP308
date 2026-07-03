@@ -13,12 +13,13 @@ import java.awt.event.KeyEvent;
 /**
  * Écran de connexion affiché au lancement de l'application.
  *
- * Pour l'instant (en attendant un vrai système d'authentification côté
- * persistance), la connexion fonctionne ainsi :
- *  - Le champ "Numéro de compte" sert à charger un compte existant
- *    via {@code ICompteService.rechercherCompte()}.
- *  - Le champ "Mot de passe" est purement visuel, sans vérification réelle
- *    (la classe Compte actuelle ne stocke pas de mot de passe).
+ * MISE À JOUR : le mot de passe est désormais réellement vérifié via
+ * {@code ICompteService.seConnecter()} (hachage SHA-256 comparé côté
+ * service). Un lien "Mot de passe oublié ?" permet de basculer vers
+ * {@link MotDePasseOubliePanel}.
+ *
+ *  - Le champ "Numéro de compte" + "Mot de passe" sont vérifiés via
+ *    {@code ICompteService.seConnecter()}.
  *  - Un lien "Créer un compte" permet de basculer vers {@link InscriptionPanel}.
  *  - Un bouton "Continuer sans compte" permet d'explorer l'application
  *    sans connexion, pour ne pas bloquer le développement/la démo.
@@ -40,13 +41,13 @@ public class LoginPanel extends JPanel {
 
         ICompteService service = parent.getCompteService();
 
-        // ── Carte centrale blanche contenant le formulaire ────────────────────
+        // ── Carte centrale blanche contenant le formulaire ─────────────
         JPanel carte = new JPanel();
         carte.setLayout(new BoxLayout(carte, BoxLayout.Y_AXIS));
         carte.setBackground(Theme.BLANC);
         carte.setBorder(new EmptyBorder(40, 45, 35, 45));
 
-        // ── Logo / Titre de l'application ─────────────────────────────────────
+        // ── Logo / Titre de l'application ───────────────────────────────
         JLabel logo = new JLabel("MOBILE MONEY");
         logo.setFont(new Font("Segoe UI", Font.BOLD, 26));
         logo.setForeground(Theme.BLEU_FONCE);
@@ -64,24 +65,30 @@ public class LoginPanel extends JPanel {
         sousTitre.setForeground(Theme.TEXTE_GRIS);
         sousTitre.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // ── Champ Numéro de compte (centré) ───────────────────────────────────
+        // ── Champ Numéro de compte (centré) ─────────────────────────────
         JLabel labelCompte = creerLabelChamp("Numéro de compte");
         JTextField champCompte = new JTextField();
         styliserChamp(champCompte);
 
-        // ── Champ Mot de passe (centré) ───────────────────────────────────────
+        // ── Champ Mot de passe (centré) ─────────────────────────────────
         JLabel labelMdp = creerLabelChamp("Mot de passe");
         JPasswordField champMdp = new JPasswordField();
         styliserChamp(champMdp);
 
-        // ── Label d'erreur ─────────────────────────────────────────────────────
+        // ── Lien "Mot de passe oublié ?" ────────────────────────────────
+        JButton btnMdpOublie = new JButton("Mot de passe oublié ?");
+        styliserLien(btnMdpOublie, Theme.BLEU_MOYEN);
+        btnMdpOublie.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        btnMdpOublie.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        // ── Label d'erreur ───────────────────────────────────────────────
         JLabel labelErreur = new JLabel(" ");
         labelErreur.setForeground(Theme.ROUGE_ERREUR);
         labelErreur.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         labelErreur.setAlignmentX(Component.CENTER_ALIGNMENT);
         labelErreur.setHorizontalAlignment(SwingConstants.CENTER);
 
-        // ── Bouton de connexion (orange, plein, centré) ───────────────────────
+        // ── Bouton de connexion (orange, plein, centré) ──────────────────
         JButton btnConnexion = new JButton("SE CONNECTER");
         btnConnexion.setFont(Theme.POLICE_BOUTON);
         btnConnexion.setBackground(Theme.ORANGE_VIF);
@@ -94,16 +101,16 @@ public class LoginPanel extends JPanel {
         btnConnexion.setPreferredSize(new Dimension(LARGEUR_CHAMP, 42));
         btnConnexion.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-        // ── Bouton "Continuer sans compte" (texte simple) ─────────────────────
+        // ── Bouton "Continuer sans compte" (texte simple) ────────────────
         JButton btnInvite = new JButton("Continuer sans compte");
         styliserLien(btnInvite, Theme.TEXTE_GRIS);
 
-        // ── Séparateur visuel ──────────────────────────────────────────────────
+        // ── Séparateur visuel ──────────────────────────────────────────
         JSeparator separateur = new JSeparator();
         separateur.setMaximumSize(new Dimension(LARGEUR_CHAMP, 1));
         separateur.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // ── Lien "Créer un compte" ─────────────────────────────────────────────
+        // ── Lien "Créer un compte" ───────────────────────────────────────
         JLabel labelPasDeCompte = new JLabel("Vous n'avez pas encore de compte ?");
         labelPasDeCompte.setFont(Theme.POLICE_SOUS_TITRE);
         labelPasDeCompte.setForeground(Theme.TEXTE_GRIS);
@@ -113,7 +120,7 @@ public class LoginPanel extends JPanel {
         styliserLien(btnInscription, Theme.BLEU_MOYEN);
         btnInscription.setFont(new Font("Segoe UI", Font.BOLD, 13));
 
-        // ── Action de connexion ────────────────────────────────────────────────
+        // ── Action de connexion ───────────────────────────────────────────
         Runnable actionConnexion = () -> {
             if (tentativesEchouees >= 3) {
                 return;
@@ -128,7 +135,7 @@ public class LoginPanel extends JPanel {
             }
 
             try {
-                Compte compte = service.rechercherCompte(numero);
+                Compte compte = service.seConnecter(numero, mdp);
                 tentativesEchouees = 0;
                 parent.definirCompteConnecte(compte);
                 parent.afficherCarte(MainFrame.CARTE_ACCUEIL);
@@ -151,6 +158,7 @@ public class LoginPanel extends JPanel {
             parent.afficherCarte(MainFrame.CARTE_ACCUEIL);
         });
         btnInscription.addActionListener(e -> parent.afficherCarte(MainFrame.CARTE_INSCRIPTION));
+        btnMdpOublie.addActionListener(e -> parent.afficherCarte(MainFrame.CARTE_MDP_OUBLIE));
 
         champMdp.addKeyListener(new KeyAdapter() {
             @Override
@@ -161,7 +169,7 @@ public class LoginPanel extends JPanel {
             }
         });
 
-        // ── Assemblage vertical de la carte (tout centré) ─────────────────────
+        // ── Assemblage vertical de la carte (tout centré) ────────────────
         carte.add(logo);
         carte.add(Box.createVerticalStrut(8));
         carte.add(traitAccent);
@@ -176,6 +184,8 @@ public class LoginPanel extends JPanel {
         carte.add(Box.createVerticalStrut(5));
         carte.add(champMdp);
         carte.add(Box.createVerticalStrut(6));
+        carte.add(btnMdpOublie);
+        carte.add(Box.createVerticalStrut(4));
         carte.add(labelErreur);
         carte.add(Box.createVerticalStrut(14));
         carte.add(btnConnexion);
@@ -191,7 +201,7 @@ public class LoginPanel extends JPanel {
         add(carte);
     }
 
-    // ── Utilitaires de style ──────────────────────────────────────────────────
+    // ── Utilitaires de style ─────────────────────────────────────────────
 
     private JLabel creerLabelChamp(String texte) {
         JLabel label = new JLabel(texte);

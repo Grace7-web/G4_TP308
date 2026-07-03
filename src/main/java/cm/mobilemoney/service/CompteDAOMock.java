@@ -62,6 +62,14 @@ public class CompteDAOMock implements ICompteDAO {
     }
 
     @Override
+    public void mettreAJourMotDePasse(String numero, String motDePasseHash) throws MobileMoneyException {
+        Compte c = tableComptes.get(numero);
+        if (c == null) throw new MobileMoneyException.CompteInexistantException(numero);
+        // En vrai DAO JDBC : UPDATE comptes SET mot_de_passe = ? WHERE numero = ?
+        c.setMotDePasseHash(motDePasseHash);
+    }
+
+    @Override
     public void enregistrerTransaction(Transaction transaction) throws MobileMoneyException {
         tableTransactions.add(transaction);
     }

@@ -5,6 +5,7 @@ import cm.mobilemoney.exception.MobileMoneyException.*;
 import cm.mobilemoney.metier.Compte;
 import cm.mobilemoney.metier.Transaction;
 import cm.mobilemoney.metier.Transaction.TypeTransaction;
+import cm.mobilemoney.util.HashUtil;
 
 import java.util.Collections;
 import java.util.List;
@@ -18,6 +19,8 @@ import java.util.UUID;
  *  - Calculer les commissions
  *  - Vérifier les plafonds réglementaires
  *  - Orchestrer les appels au DAO (couche persistance)
+ *  - Hacher les mots de passe / réponses secrètes avant toute persistance
+ *    (jamais de texte en clair transmis au DAO)
  *
  * Cette classe ne connaît PAS MySQL, ni JDBC, ni Swing.
  * Elle ne dépend que de l'interface {@code ICompteDAO}.
@@ -29,7 +32,7 @@ import java.util.UUID;
  */
 public class CompteService implements ICompteService {
 
-    // ── Constantes des règles métier ──────────────────────────────────────────
+    // ── Constantes des règles métier ─────────────────────────────────
 
     /** Taux de commission sur les RETRAITS (en %) */
     public static final double TAUX_COMMISSION_RETRAIT   = 1.0;   // 1%
@@ -49,11 +52,11 @@ public class CompteService implements ICompteService {
     /** Le montant doit être un multiple de cette valeur (FCFA) */
     public static final double MULTIPLE_AUTORISE         = 500.0;
 
-    // ── Dépendance injectée ───────────────────────────────────────────────────
+    // ── Dépendance injectée ───────────────────────────────────────────
 
     private final ICompteDAO compteDAO;
 
-    // ── Constructeur avec injection de dépendance ─────────────────────────────
+    // ── Constructeur avec injection de dépendance ────────────────────
 
     /**
      * @param compteDAO Implémentation du DAO fournie par l'Équipe Persistance.
@@ -66,10 +69,17 @@ public class CompteService implements ICompteService {
         this.compteDAO = compteDAO;
     }
 
-    // ── Gestion des comptes ───────────────────────────────────────────────────
+    // ── Gestion des comptes ───────────────────────────────────────────
 
     @Override
     public Compte creerCompte(String titulaire, double soldeInitial)
+            throws MobileMoneyException {
+        return creerCompte(titulaire, soldeInitial, null, null, null);
+    }
+
+    @Override
+    public Compte creerCompte(String titulaire, double soldeInitial,
+                               String motDePasse, String questionSecrete, String reponseSecrete)
             throws MobileMoneyException {
 
         // Validation du solde initial
@@ -78,8 +88,15 @@ public class CompteService implements ICompteService {
         // Génération du numéro de compte unique
         String numero = genererNumeroCompte();
 
+        // Hachage du mot de passe et de la réponse secrète (jamais en clair en base)
+        String motDePasseHash = estRenseigne(motDePasse) ? HashUtil.sha256(motDePasse) : null;
+        String reponseHash    = estRenseigne(reponseSecrete)
+                ? HashUtil.sha256(normaliserReponse(reponseSecrete)) : null;
+        String question       = estRenseigne(questionSecrete) ? questionSecrete.trim() : null;
+
         // Création de l'objet métier (le constructeur valide titulaire et solde)
-        Compte nouveauCompte = new Compte(numero, titulaire, soldeInitial);
+        Compte nouveauCompte = new Compte(numero, titulaire, soldeInitial,
+                motDePasseHash, question, reponseHash);
 
         // Persistance via le DAO
         compteDAO.insererCompte(nouveauCompte);
@@ -125,7 +142,70 @@ public class CompteService implements ICompteService {
                 numero, actif ? "ACTIF" : "BLOQUÉ");
     }
 
-    // ── Opérations financières ────────────────────────────────────────────────
+    // ── Authentification ──────────────────────────────────────────────
+
+    @Override
+    public Compte seConnecter(String numero, String motDePasse) throws MobileMoneyException {
+        Compte compte = rechercherCompte(numero);
+        verifierCompteActif(compte);
+
+        if (motDePasse == null || motDePasse.isEmpty()) {
+            throw new AuthentificationException("Veuillez saisir votre mot de passe.");
+        }
+
+        String hashSaisi = HashUtil.sha256(motDePasse);
+        if (compte.getMotDePasseHash() == null || !compte.getMotDePasseHash().equals(hashSaisi)) {
+            throw new AuthentificationException("Numéro de compte ou mot de passe incorrect.");
+        }
+
+        return compte;
+    }
+
+    @Override
+    public String obtenirQuestionSecrete(String numero) throws MobileMoneyException {
+        Compte compte = rechercherCompte(numero);
+
+        if (compte.getQuestionSecrete() == null || compte.getQuestionSecrete().isBlank()) {
+            throw new AuthentificationException(
+                    "Aucune question secrète n'est définie pour ce compte. "
+                            + "Contactez votre agence pour réinitialiser votre mot de passe.");
+        }
+        return compte.getQuestionSecrete();
+    }
+
+    @Override
+    public void reinitialiserMotDePasse(String numero, String reponseSecrete, String nouveauMotDePasse)
+            throws MobileMoneyException {
+
+        Compte compte = rechercherCompte(numero);
+
+        if (compte.getReponseSecreteHash() == null) {
+            throw new AuthentificationException(
+                    "Aucune question secrète n'est définie pour ce compte.");
+        }
+        if (reponseSecrete == null || reponseSecrete.isBlank()) {
+            throw new AuthentificationException("Veuillez saisir une réponse.");
+        }
+        if (nouveauMotDePasse == null || nouveauMotDePasse.isBlank()) {
+            throw new AuthentificationException("Le nouveau mot de passe ne peut pas être vide.");
+        }
+        if (nouveauMotDePasse.length() < 4) {
+            throw new AuthentificationException(
+                    "Le nouveau mot de passe doit contenir au moins 4 caractères.");
+        }
+
+        String hashSaisi = HashUtil.sha256(normaliserReponse(reponseSecrete));
+        if (!compte.getReponseSecreteHash().equals(hashSaisi)) {
+            throw new AuthentificationException("Réponse secrète incorrecte.");
+        }
+
+        String nouveauHash = HashUtil.sha256(nouveauMotDePasse);
+        compteDAO.mettreAJourMotDePasse(compte.getNumero(), nouveauHash);
+
+        System.out.printf("[SERVICE] Mot de passe réinitialisé pour le compte %s%n", compte.getNumero());
+    }
+
+    // ── Opérations financières ────────────────────────────────────────
 
     @Override
     public Transaction deposer(String numeroCompte, double montant)
@@ -182,12 +262,11 @@ public class CompteService implements ICompteService {
         double montantTotal  = montant + commission;
 
         // 5. Vérification de la suffisance du solde
-        // On vérifie que le solde restant ne descend pas sous le seuil minimum
         double soldeApresOperation = compte.getSolde() - montantTotal;
         if (soldeApresOperation < Compte.SOLDE_MINIMUM) {
             throw new SoldeInsuffisantException(
                     compte.getSolde(),
-                    montantTotal + Compte.SOLDE_MINIMUM   // ce qu'il faudrait avoir
+                    montantTotal + Compte.SOLDE_MINIMUM
             );
         }
 
@@ -257,7 +336,6 @@ public class CompteService implements ICompteService {
         }
 
         // 7. Délégation au DAO : opération atomique (transaction SQL)
-        // C'est le DAO qui garantit l'atomicité avec setAutoCommit(false)
         Transaction transaction = compteDAO.executerTransfert(
                 source.getNumero(),
                 destination.getNumero(),
@@ -271,7 +349,7 @@ public class CompteService implements ICompteService {
         return transaction;
     }
 
-    // ── Historique ────────────────────────────────────────────────────────────
+    // ── Historique ─────────────────────────────────────────────────────
 
     @Override
     public List<Transaction> obtenirHistorique(String numeroCompte)
@@ -298,7 +376,7 @@ public class CompteService implements ICompteService {
         }
     }
 
-    // ── Méthodes privées utilitaires ──────────────────────────────────────────
+    // ── Méthodes privées utilitaires ─────────────────────────────────
 
     /**
      * Valide qu'un montant respecte toutes les règles métier.
@@ -349,5 +427,20 @@ public class CompteService implements ICompteService {
      */
     private double arrondir(double montant) {
         return Math.round(montant * 100.0) / 100.0;
+    }
+
+    /**
+     * Normalise une réponse secrète avant hachage (espaces + casse), pour
+     * que "Douala", "douala " et "DOUALA" soient traités comme identiques.
+     */
+    private String normaliserReponse(String reponse) {
+        return reponse.trim().toLowerCase();
+    }
+
+    /**
+     * Vrai si une chaîne est non-null et contient autre chose que des espaces.
+     */
+    private boolean estRenseigne(String texte) {
+        return texte != null && !texte.isBlank();
     }
 }

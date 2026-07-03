@@ -25,11 +25,12 @@ import java.util.List;
  */
 public interface ICompteDAO {
 
-    // ── CRUD Comptes ──────────────────────────────────────────────────────────
+    // ── CRUD Comptes ──────────────────────────────────────────────────
 
     /**
      * Insère un nouveau compte en base de données.
-     * SQL cible : INSERT INTO comptes (numero, titulaire, solde, date_creation, actif) VALUES (?,?,?,?,?)
+     * SQL cible : INSERT INTO comptes (numero, titulaire, solde, mot_de_passe,
+     *             question_secrete, reponse_secrete) VALUES (?,?,?,?,?,?)
      */
     void insererCompte(Compte compte) throws MobileMoneyException;
 
@@ -59,7 +60,17 @@ public interface ICompteDAO {
      */
     void mettreAJourStatut(String numero, boolean actif) throws MobileMoneyException;
 
-    // ── Transactions ──────────────────────────────────────────────────────────
+    /**
+     * Met à jour l'empreinte du mot de passe d'un compte (utilisé lors de
+     * l'inscription initiale ou d'une réinitialisation via la question secrète).
+     * SQL cible : UPDATE comptes SET mot_de_passe = ? WHERE numero = ?
+     *
+     * @param numero         Numéro du compte
+     * @param motDePasseHash Empreinte SHA-256 du nouveau mot de passe
+     */
+    void mettreAJourMotDePasse(String numero, String motDePasseHash) throws MobileMoneyException;
+
+    // ── Transactions ──────────────────────────────────────────────────
 
     /**
      * Enregistre une transaction simple (dépôt ou retrait) en base.
