@@ -12,26 +12,8 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
-/**
- * Écran d'historique des transactions.
- *
- * Affiche soit l'historique du compte connecté (via
- * {@code ICompteService.obtenirHistorique()}), soit toutes les
- * transactions du système en mode invité (via
- * {@code obtenirToutesLesTransactions()}).
- *
- * La JTable utilise un renderer personnalisé qui colore chaque ligne
- * selon le type de transaction :
- *  - Vert clair pour les dépôts
- *  - Rouge clair pour les retraits
- *  - Orange clair pour les transferts
- *
- * Conforme au cours (semaine 7) : JTable avec modèle de données,
- * rafraîchissement après chargement.
- *
- * @author Équipe IHM Swing — Projet 4
- */
 public class HistoriquePanel extends JPanel {
 
     private static final String[] COLONNES = {
@@ -41,6 +23,8 @@ public class HistoriquePanel extends JPanel {
     private final DefaultTableModel modeleTable;
     private final JTable table;
     private final JLabel labelTitre;
+    private final JButton btnActualiser;
+    private final JProgressBar progressBar; // NOUVEAU : indique le chargement en cours
 
     public HistoriquePanel(MainFrame parent) {
         super(new BorderLayout());
@@ -58,7 +42,7 @@ public class HistoriquePanel extends JPanel {
         labelTitre.setFont(new Font("Segoe UI", Font.BOLD, 22));
         labelTitre.setForeground(Theme.BLEU_FONCE);
 
-        JButton btnActualiser = new JButton("⟳ Actualiser");
+        btnActualiser = new JButton("⟳ Actualiser");
         btnActualiser.setFont(Theme.POLICE_SOUS_TITRE);
         btnActualiser.setFocusPainted(false);
         btnActualiser.setBackground(Theme.BLEU_MOYEN);
@@ -67,14 +51,27 @@ public class HistoriquePanel extends JPanel {
         btnActualiser.setOpaque(true);
         btnActualiser.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
+        // NOUVEAU : barre de progression, cachée par défaut
+        progressBar = new JProgressBar();
+        progressBar.setIndeterminate(true);
+        progressBar.setVisible(false);
+        progressBar.setPreferredSize(new Dimension(140, 18));
+        progressBar.setStringPainted(true);
+        progressBar.setString("Chargement...");
+
+        JPanel entetesDroite = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        entetesDroite.setBackground(Theme.FOND_CLAIR);
+        entetesDroite.add(progressBar);
+        entetesDroite.add(btnActualiser);
+
         entete.add(labelTitre, BorderLayout.WEST);
-        entete.add(btnActualiser, BorderLayout.EAST);
+        entete.add(entetesDroite, BorderLayout.EAST);
 
         // ── Table ──────────────────────────────────────────────────────────────
         modeleTable = new DefaultTableModel(COLONNES, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // Table en lecture seule
+                return false;
             }
         };
 
@@ -118,31 +115,89 @@ public class HistoriquePanel extends JPanel {
     }
 
     /**
-     * Recharge les transactions depuis le service métier et met à jour
-     * la table. Appelée à la construction et au clic sur "Actualiser".
-     *
-     * Suit le compte connecté : si un compte est connecté, n'affiche que
-     * son historique ; sinon affiche toutes les transactions du système.
+     * Déclenche le chargement ASYNCHRONE des transactions via SwingWorker.
+     * L'EDT reste libre pendant que la requête JDBC s'exécute en arrière-plan.
      */
     private void chargerDonnees(ICompteService service, MainFrame parent) {
-        modeleTable.setRowCount(0);
-
         Compte compteConnecte = parent.getCompteConnecte();
-        List<Transaction> transactions;
+
+        // Verrouiller l'UI le temps du chargement
+        btnActualiser.setEnabled(false);
+        progressBar.setVisible(true);
+        parent.definirStatut("Chargement de l'historique en cours...");
 
         if (compteConnecte != null) {
             labelTitre.setText("Historique — Compte " + compteConnecte.getNumero());
-            try {
-                transactions = service.obtenirHistorique(compteConnecte.getNumero());
-            } catch (MobileMoneyException ex) {
-                JOptionPane.showMessageDialog(this, ex.getMessage(), "Erreur", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
         } else {
             labelTitre.setText("Historique — Toutes les transactions");
-            transactions = service.obtenirToutesLesTransactions();
         }
 
+        new HistoriqueWorker(service, compteConnecte, parent).execute();
+    }
+
+    /**
+     * SwingWorker chargé d'appeler le service métier (donc potentiellement JDBC)
+     * en dehors de l'EDT, puis de mettre à jour la JTable une fois terminé.
+     *
+     * Type générique 1 : List<Transaction>  → résultat final
+     * Type générique 2 : Void               → pas de progression intermédiaire
+     *                     (le service renvoie la liste complète en un bloc,
+     *                      pas ligne par ligne, donc publish() n'a pas d'usage ici)
+     */
+    private class HistoriqueWorker extends SwingWorker<List<Transaction>, Void> {
+
+        private final ICompteService service;
+        private final Compte compteConnecte;
+        private final MainFrame parent;
+
+        HistoriqueWorker(ICompteService service, Compte compteConnecte, MainFrame parent) {
+            this.service = service;
+            this.compteConnecte = compteConnecte;
+            this.parent = parent;
+        }
+
+        // ── S'exécute dans un thread séparé : JAMAIS toucher un composant Swing ici ──
+        @Override
+        protected List<Transaction> doInBackground() throws MobileMoneyException {
+            if (compteConnecte != null) {
+                return service.obtenirHistorique(compteConnecte.getNumero());
+            } else {
+                return service.obtenirToutesLesTransactions();
+            }
+        }
+
+        // ── S'exécute dans l'EDT une fois doInBackground() terminée ──
+        @Override
+        protected void done() {
+            btnActualiser.setEnabled(true);
+            progressBar.setVisible(false);
+
+            try {
+                List<Transaction> transactions = get(); // relance l'exception si erreur
+                remplirTable(transactions);
+
+                if (transactions.isEmpty()) {
+                    parent.definirStatut("Aucune transaction trouvée.");
+                } else {
+                    parent.definirStatut(transactions.size() + " transaction(s) chargée(s).");
+                }
+            } catch (ExecutionException ex) {
+                // La cause réelle est l'exception levée dans doInBackground()
+                String message = (ex.getCause() != null)
+                        ? ex.getCause().getMessage()
+                        : ex.getMessage();
+                JOptionPane.showMessageDialog(HistoriquePanel.this, message,
+                        "Erreur de chargement", JOptionPane.ERROR_MESSAGE);
+                parent.definirStatut("Échec du chargement de l'historique.");
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    /** Remplit la JTable à partir d'une liste de transactions (appelée dans l'EDT uniquement). */
+    private void remplirTable(List<Transaction> transactions) {
+        modeleTable.setRowCount(0);
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
         for (Transaction t : transactions) {
@@ -156,20 +211,9 @@ public class HistoriquePanel extends JPanel {
                     t.isSucces() ? "✓ Succès" : "✗ Échec"
             });
         }
-
-        if (transactions.isEmpty()) {
-            parent.definirStatut("Aucune transaction trouvée.");
-        } else {
-            parent.definirStatut(transactions.size() + " transaction(s) chargée(s).");
-        }
     }
 
-    /**
-     * Renderer personnalisé qui colore chaque ligne de la table selon
-     * le type de transaction (colonne "Type", index 1).
-     */
     private static class RendererLigneColoree extends DefaultTableCellRenderer {
-
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value,
                                                        boolean isSelected, boolean hasFocus,
