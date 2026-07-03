@@ -1,0 +1,64 @@
+CREATE DATABASE IF NOT EXISTS mobile_money CHARACTER SET utf8mb4;
+USE mobile_money;
+
+
+
+CREATE TABLE comptes (
+    numero           VARCHAR(20)  PRIMARY KEY,
+    titulaire        VARCHAR(100) NOT NULL,
+    solde            DECIMAL(15,2) DEFAULT 0.00,
+    actif            BOOLEAN       DEFAULT TRUE,
+    mot_de_passe     VARCHAR(64),
+    question_secrete VARCHAR(200),
+    reponse_secrete  VARCHAR(64)
+);
+
+CREATE TABLE transactions (
+    id          INT           AUTO_INCREMENT PRIMARY KEY,
+    source      VARCHAR(20),
+    destination VARCHAR(20),
+    montant     DECIMAL(15,2) NOT NULL,
+    type        VARCHAR(20)   NOT NULL,
+    commission  DECIMAL(15,2) DEFAULT 0.00,
+    succes      BOOLEAN       DEFAULT TRUE,
+    date        DATETIME      DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Mot de passe = 1234 pour tous les comptes (hash SHA-256)
+INSERT INTO comptes VALUES
+('CM-001','GHADEUNE Grace',  500000.00,TRUE,
+ '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',
+ 'Ville de naissance ?',
+ '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4'),
+('CM-002','GWOS Christine',  320000.00,TRUE,
+ '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',
+ 'Ville de naissance ?',
+ '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4'),
+('CM-003','FOKOU Tedy',      150000.00,TRUE,
+ '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',
+ 'Ville de naissance ?',
+ '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4'),
+('CM-004','GUIFFO Tatchim',   80000.00,TRUE,
+ '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',
+ 'Ville de naissance ?',
+ '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4'),
+('CM-005','GULENYONGA Chelsy',210000.00,TRUE,
+ '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',
+ 'Ville de naissance ?',
+ '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4'),
+('CM-006','HEBGA Joseph',    500000.00,TRUE,
+ '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',
+ 'Ville de naissance ?',
+ '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4'),
+('CM-007','IBRAHIM Kori',    320000.00,TRUE,
+ '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',
+ 'Ville de naissance ?',
+ '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4'),
+('CM-008','JOU Tadjeu',      150000.00,TRUE,
+ '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',
+ 'Ville de naissance ?',
+ '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4'),
+('CM-009','JOUFOGANG Oceanne', 80000.00,TRUE,
+ '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',
+ 'Ville de naissance ?',
+ '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4');

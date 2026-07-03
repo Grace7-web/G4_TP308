@@ -3,6 +3,7 @@ package cm.mobilemoney.vue;
 import cm.mobilemoney.service.CompteDAOMock;
 import cm.mobilemoney.service.CompteService;
 import cm.mobilemoney.service.ICompteService;
+import cm.mobilemoney.dao.CompteDAO;
 
 import javax.swing.*;
 
@@ -33,7 +34,7 @@ public class LanceurApplication {
     public static void main(String[] args) {
 
         // Création du service métier (mock en attendant le DAO JDBC réel)
-        ICompteService compteService = new CompteService(new CompteDAOMock());
+        ICompteService compteService = new CompteService(new CompteDAO());
 
         // TOUJOURS lancer l'interface graphique dans l'EDT
         SwingUtilities.invokeLater(() -> {

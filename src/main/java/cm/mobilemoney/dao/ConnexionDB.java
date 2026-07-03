@@ -10,7 +10,7 @@ import java.sql.SQLException;
 public class ConnexionDB {
 
     private static final String URL      =
-            "jdbc:mysql://localhost:3306/MobileMoney";
+            "jdbc:mysql://localhost:3306/mobile_money";
     private static final String USER     = "root";
     private static final String PASSWORD = ""; // ton mot de passe XAMPP
 
