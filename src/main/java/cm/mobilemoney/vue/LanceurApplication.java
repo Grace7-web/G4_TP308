@@ -4,6 +4,7 @@ package cm.mobilemoney.vue;
 import cm.mobilemoney.service.CompteService;
 import cm.mobilemoney.service.ICompteService;
 import cm.mobilemoney.dao.CompteDAO;
+import cm.mobilemoney.dao.ConnexionDB;
 
 import javax.swing.*;
 
@@ -32,6 +33,9 @@ import javax.swing.*;
 public class LanceurApplication {
 
     public static void main(String[] args) {
+
+        // Auto-initialisation de la base de données (si elle n'existe pas)
+        ConnexionDB.initialiserBaseDeDonnees();
 
         // Création du service métier (mock en attendant le DAO JDBC réel)
         ICompteService compteService = new CompteService(new CompteDAO());
