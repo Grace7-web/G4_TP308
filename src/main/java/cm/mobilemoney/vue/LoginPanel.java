@@ -1,5 +1,7 @@
 package cm.mobilemoney.vue;
 
+import static javax.swing.SwingConstants.*;
+
 import cm.mobilemoney.exception.MobileMoneyException;
 import cm.mobilemoney.metier.Compte;
 import cm.mobilemoney.service.ICompteService;
@@ -51,19 +53,19 @@ public class LoginPanel extends JPanel {
         JLabel logo = new JLabel("MOBILE MONEY");
         logo.setFont(new Font("Segoe UI", Font.BOLD, 26));
         logo.setForeground(Theme.BLEU_FONCE);
-        logo.setAlignmentX(Component.CENTER_ALIGNMENT);
+        logo.setAlignmentX(CENTER_ALIGNMENT);
 
         // Petit accent orange sous le logo
         JPanel traitAccent = new JPanel();
         traitAccent.setBackground(Theme.ORANGE_VIF);
         traitAccent.setMaximumSize(new Dimension(50, 4));
         traitAccent.setPreferredSize(new Dimension(50, 4));
-        traitAccent.setAlignmentX(Component.CENTER_ALIGNMENT);
+        traitAccent.setAlignmentX(CENTER_ALIGNMENT);
 
         JLabel sousTitre = new JLabel("Connexion à votre espace");
         sousTitre.setFont(Theme.POLICE_SOUS_TITRE);
         sousTitre.setForeground(Theme.TEXTE_GRIS);
-        sousTitre.setAlignmentX(Component.CENTER_ALIGNMENT);
+        sousTitre.setAlignmentX(CENTER_ALIGNMENT);
 
         // ── Champ Numéro de compte (centré) ─────────────────────────────
         JLabel labelCompte = creerLabelChamp("Numéro de compte");
@@ -79,14 +81,14 @@ public class LoginPanel extends JPanel {
         JButton btnMdpOublie = new JButton("Mot de passe oublié ?");
         styliserLien(btnMdpOublie, Theme.BLEU_MOYEN);
         btnMdpOublie.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        btnMdpOublie.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnMdpOublie.setAlignmentX(CENTER_ALIGNMENT);
 
         // ── Label d'erreur ───────────────────────────────────────────────
         JLabel labelErreur = new JLabel(" ");
         labelErreur.setForeground(Theme.ROUGE_ERREUR);
         labelErreur.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        labelErreur.setAlignmentX(Component.CENTER_ALIGNMENT);
-        labelErreur.setHorizontalAlignment(SwingConstants.CENTER);
+        labelErreur.setAlignmentX(CENTER_ALIGNMENT);
+        labelErreur.setHorizontalAlignment(CENTER);
 
         // ── Bouton de connexion (orange, plein, centré) ──────────────────
         JButton btnConnexion = new JButton("SE CONNECTER");
@@ -96,7 +98,7 @@ public class LoginPanel extends JPanel {
         btnConnexion.setFocusPainted(false);
         btnConnexion.setBorderPainted(false);
         btnConnexion.setOpaque(true);
-        btnConnexion.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnConnexion.setAlignmentX(CENTER_ALIGNMENT);
         btnConnexion.setMaximumSize(new Dimension(LARGEUR_CHAMP, 42));
         btnConnexion.setPreferredSize(new Dimension(LARGEUR_CHAMP, 42));
         btnConnexion.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -108,13 +110,13 @@ public class LoginPanel extends JPanel {
         // ── Séparateur visuel ──────────────────────────────────────────
         JSeparator separateur = new JSeparator();
         separateur.setMaximumSize(new Dimension(LARGEUR_CHAMP, 1));
-        separateur.setAlignmentX(Component.CENTER_ALIGNMENT);
+        separateur.setAlignmentX(CENTER_ALIGNMENT);
 
         // ── Lien "Créer un compte" ───────────────────────────────────────
         JLabel labelPasDeCompte = new JLabel("Vous n'avez pas encore de compte ?");
         labelPasDeCompte.setFont(Theme.POLICE_SOUS_TITRE);
         labelPasDeCompte.setForeground(Theme.TEXTE_GRIS);
-        labelPasDeCompte.setAlignmentX(Component.CENTER_ALIGNMENT);
+        labelPasDeCompte.setAlignmentX(CENTER_ALIGNMENT);
 
         JButton btnInscription = new JButton("Créer un compte");
         styliserLien(btnInscription, Theme.BLEU_MOYEN);
@@ -134,22 +136,44 @@ public class LoginPanel extends JPanel {
                 return;
             }
 
-            try {
-                Compte compte = service.seConnecter(numero, mdp);
-                tentativesEchouees = 0;
-                parent.definirCompteConnecte(compte);
-                parent.afficherCarte(MainFrame.CARTE_ACCUEIL);
-            } catch (MobileMoneyException e) {
-                tentativesEchouees++;
-                if (tentativesEchouees >= 3) {
-                    labelErreur.setText("Erreur : Bouton bloqué après 3 tentatives.");
-                    btnConnexion.setEnabled(false);
-                    btnConnexion.setBackground(Theme.TEXTE_GRIS);
-                } else {
-                    int restants = 3 - tentativesEchouees;
-                    labelErreur.setText(e.getMessage() + " (" + restants + " essai(s) restant(s))");
+            // On désactive le bouton pendant la connexion
+            btnConnexion.setEnabled(false);
+            labelErreur.setText("Connexion en cours...");
+            labelErreur.setForeground(Theme.TEXTE_GRIS);
+
+            SwingWorker<Compte, Void> worker = new SwingWorker<Compte, Void>() {
+                @Override
+                protected Compte doInBackground() throws Exception {
+                    return service.seConnecter(numero, mdp);
                 }
-            }
+
+                @Override
+                protected void done() {
+                    btnConnexion.setEnabled(true);
+                    try {
+                        Compte compte = get(); // Lève ExecutionException si doInBackground a échoué
+                        tentativesEchouees = 0;
+                        labelErreur.setText(" ");
+                        parent.definirCompteConnecte(compte);
+                        parent.afficherCarte(MainFrame.CARTE_ACCUEIL);
+                    } catch (Exception ex) {
+                        Throwable cause = ex.getCause();
+                        String errorMsg = (cause instanceof MobileMoneyException) ? cause.getMessage() : "Erreur de connexion";
+                        
+                        tentativesEchouees++;
+                        labelErreur.setForeground(Theme.ROUGE_ERREUR);
+                        if (tentativesEchouees >= 3) {
+                            labelErreur.setText("Erreur : Bouton bloqué après 3 tentatives.");
+                            btnConnexion.setEnabled(false);
+                            btnConnexion.setBackground(Theme.TEXTE_GRIS);
+                        } else {
+                            int restants = 3 - tentativesEchouees;
+                            labelErreur.setText(errorMsg + " (" + restants + " essai(s) restant(s))");
+                        }
+                    }
+                }
+            };
+            worker.execute();
         };
 
         btnConnexion.addActionListener(e -> actionConnexion.run());
@@ -207,15 +231,15 @@ public class LoginPanel extends JPanel {
         JLabel label = new JLabel(texte);
         label.setFont(Theme.POLICE_LABEL);
         label.setForeground(Theme.TEXTE_SOMBRE);
-        label.setAlignmentX(Component.CENTER_ALIGNMENT);
+        label.setAlignmentX(CENTER_ALIGNMENT);
         return label;
     }
 
     private void styliserChamp(JTextField champ) {
         champ.setMaximumSize(new Dimension(LARGEUR_CHAMP, 36));
         champ.setPreferredSize(new Dimension(LARGEUR_CHAMP, 36));
-        champ.setAlignmentX(Component.CENTER_ALIGNMENT);
-        champ.setHorizontalAlignment(SwingConstants.CENTER);
+        champ.setAlignmentX(CENTER_ALIGNMENT);
+        champ.setHorizontalAlignment(CENTER);
         champ.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(206, 212, 218)),
                 new EmptyBorder(6, 8, 6, 8)
@@ -228,7 +252,7 @@ public class LoginPanel extends JPanel {
         bouton.setBorderPainted(false);
         bouton.setContentAreaFilled(false);
         bouton.setFocusPainted(false);
-        bouton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        bouton.setAlignmentX(CENTER_ALIGNMENT);
         bouton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 }

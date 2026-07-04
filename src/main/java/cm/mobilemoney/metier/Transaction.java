@@ -1,9 +1,10 @@
 package cm.mobilemoney.metier;
 
+import java.util.UUID;
+
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.UUID;
 
 /**
  * Classe métier représentant une transaction financière enregistrée.

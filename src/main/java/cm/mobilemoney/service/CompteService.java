@@ -1,5 +1,7 @@
 package cm.mobilemoney.service;
 
+import java.util.UUID;
+
 import cm.mobilemoney.exception.MobileMoneyException;
 import cm.mobilemoney.exception.MobileMoneyException.*;
 import cm.mobilemoney.metier.Compte;
@@ -9,7 +11,6 @@ import cm.mobilemoney.util.HashUtil;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Implémentation du service métier Mobile Money.

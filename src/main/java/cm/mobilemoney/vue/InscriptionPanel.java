@@ -1,5 +1,7 @@
 package cm.mobilemoney.vue;
 
+import static javax.swing.SwingConstants.*;
+
 import cm.mobilemoney.exception.MobileMoneyException;
 import cm.mobilemoney.metier.Compte;
 import cm.mobilemoney.service.ICompteService;
@@ -44,18 +46,18 @@ public class InscriptionPanel extends JPanel {
         JLabel titre = new JLabel("Créer un compte");
         titre.setFont(new Font("Segoe UI", Font.BOLD, 24));
         titre.setForeground(Theme.BLEU_FONCE);
-        titre.setAlignmentX(Component.CENTER_ALIGNMENT);
+        titre.setAlignmentX(CENTER_ALIGNMENT);
 
         JPanel traitAccent = new JPanel();
         traitAccent.setBackground(Theme.ORANGE_VIF);
         traitAccent.setMaximumSize(new Dimension(50, 4));
         traitAccent.setPreferredSize(new Dimension(50, 4));
-        traitAccent.setAlignmentX(Component.CENTER_ALIGNMENT);
+        traitAccent.setAlignmentX(CENTER_ALIGNMENT);
 
         JLabel sousTitre = new JLabel("Renseignez vos informations");
         sousTitre.setFont(Theme.POLICE_SOUS_TITRE);
         sousTitre.setForeground(Theme.TEXTE_GRIS);
-        sousTitre.setAlignmentX(Component.CENTER_ALIGNMENT);
+        sousTitre.setAlignmentX(CENTER_ALIGNMENT);
 
         styliserChamp(champNom);
         styliserChamp(champTelephone);
@@ -66,12 +68,12 @@ public class InscriptionPanel extends JPanel {
 
         comboQuestionSecrete.setMaximumSize(new Dimension(LARGEUR_CHAMP, 34));
         comboQuestionSecrete.setPreferredSize(new Dimension(LARGEUR_CHAMP, 34));
-        comboQuestionSecrete.setAlignmentX(Component.CENTER_ALIGNMENT);
+        comboQuestionSecrete.setAlignmentX(CENTER_ALIGNMENT);
         comboQuestionSecrete.setFont(new Font("Segoe UI", Font.PLAIN, 12));
 
         labelMessage.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        labelMessage.setAlignmentX(Component.CENTER_ALIGNMENT);
-        labelMessage.setHorizontalAlignment(SwingConstants.CENTER);
+        labelMessage.setAlignmentX(CENTER_ALIGNMENT);
+        labelMessage.setHorizontalAlignment(CENTER);
 
         JButton btnCreer = new JButton("CRÉER MON COMPTE");
         btnCreer.setFont(Theme.POLICE_BOUTON);
@@ -80,7 +82,7 @@ public class InscriptionPanel extends JPanel {
         btnCreer.setFocusPainted(false);
         btnCreer.setBorderPainted(false);
         btnCreer.setOpaque(true);
-        btnCreer.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnCreer.setAlignmentX(CENTER_ALIGNMENT);
         btnCreer.setMaximumSize(new Dimension(LARGEUR_CHAMP, 42));
         btnCreer.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -90,10 +92,10 @@ public class InscriptionPanel extends JPanel {
         btnRetour.setBorderPainted(false);
         btnRetour.setContentAreaFilled(false);
         btnRetour.setFocusPainted(false);
-        btnRetour.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnRetour.setAlignmentX(CENTER_ALIGNMENT);
         btnRetour.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-        btnCreer.addActionListener(e -> creerCompte(service, parent));
+        btnCreer.addActionListener(e -> creerCompte(service, parent, btnCreer));
         btnRetour.addActionListener(e -> parent.afficherCarte(MainFrame.CARTE_LOGIN));
 
         carte.add(titre);
@@ -150,7 +152,7 @@ public class InscriptionPanel extends JPanel {
     }
 
     
-    private void creerCompte(ICompteService service, MainFrame parent) {
+    private void creerCompte(ICompteService service, MainFrame parent, JButton btnCreer) {
         String nom = champNom.getText().trim();
         String telephone = champTelephone.getText().trim();
         String mdp = new String(champMdp.getPassword());
@@ -196,24 +198,40 @@ public class InscriptionPanel extends JPanel {
             return;
         }
 
-        try {
-            Compte nouveauCompte = service.creerCompte(nom, depotInitial, mdp, question, reponse);
+        btnCreer.setEnabled(false);
+        labelMessage.setForeground(Theme.TEXTE_GRIS);
+        labelMessage.setText("Création en cours...");
 
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Compte créé avec succès !\n\nVotre numéro de compte est :\n"
-                            + nouveauCompte.getNumero()
-                            + "\n\nConservez-le précieusement pour vous connecter.",
-                    "Inscription réussie",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
+        SwingWorker<Compte, Void> worker = new SwingWorker<Compte, Void>() {
+            @Override
+            protected Compte doInBackground() throws Exception {
+                return service.creerCompte(nom, depotInitial, mdp, question, reponse);
+            }
 
-            parent.definirCompteConnecte(nouveauCompte);
-            parent.afficherCarte(MainFrame.CARTE_ACCUEIL);
-
-        } catch (MobileMoneyException | IllegalArgumentException ex) {
-            afficherErreur(ex.getMessage());
-        }
+            @Override
+            protected void done() {
+                btnCreer.setEnabled(true);
+                try {
+                    Compte nouveauCompte = get();
+                    JOptionPane.showMessageDialog(
+                            InscriptionPanel.this,
+                            "Compte créé avec succès !\n\nVotre numéro de compte est :\n"
+                                    + nouveauCompte.getNumero()
+                                    + "\n\nConservez-le précieusement pour vous connecter.",
+                            "Inscription réussie",
+                            JOptionPane.INFORMATION_MESSAGE
+                    );
+                    parent.definirCompteConnecte(nouveauCompte);
+                    parent.afficherCarte(MainFrame.CARTE_ACCUEIL);
+                } catch (Exception ex) {
+                    Throwable cause = ex.getCause();
+                    String errorMsg = (cause instanceof MobileMoneyException || cause instanceof IllegalArgumentException) 
+                            ? cause.getMessage() : "Erreur lors de la création du compte.";
+                    afficherErreur(errorMsg);
+                }
+            }
+        };
+        worker.execute();
     }
 
     private void afficherErreur(String message) {
@@ -225,15 +243,15 @@ public class InscriptionPanel extends JPanel {
         JLabel label = new JLabel(texte);
         label.setFont(Theme.POLICE_LABEL);
         label.setForeground(Theme.TEXTE_SOMBRE);
-        label.setAlignmentX(Component.CENTER_ALIGNMENT);
+        label.setAlignmentX(CENTER_ALIGNMENT);
         return label;
     }
 
     private void styliserChamp(JTextField champ) {
         champ.setMaximumSize(new Dimension(LARGEUR_CHAMP, 34));
         champ.setPreferredSize(new Dimension(LARGEUR_CHAMP, 34));
-        champ.setAlignmentX(Component.CENTER_ALIGNMENT);
-        champ.setHorizontalAlignment(SwingConstants.CENTER);
+        champ.setAlignmentX(CENTER_ALIGNMENT);
+        champ.setHorizontalAlignment(CENTER);
         champ.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(206, 212, 218)),
                 new EmptyBorder(5, 8, 5, 8)

@@ -1,5 +1,6 @@
 package cm.mobilemoney.vue;
 
+
 import cm.mobilemoney.metier.Compte;
 import cm.mobilemoney.service.ICompteService;
 
@@ -57,7 +58,7 @@ public class MainFrame extends JFrame {
         }
         this.compteService = compteService;
 
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
         setSize(1000, 700);
         setMinimumSize(new Dimension(820, 600));
         setLocationRelativeTo(null);

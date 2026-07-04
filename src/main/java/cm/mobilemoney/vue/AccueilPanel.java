@@ -1,5 +1,7 @@
 package cm.mobilemoney.vue;
 
+import static javax.swing.SwingConstants.*;
+
 import cm.mobilemoney.metier.Compte;
 import cm.mobilemoney.metier.Transaction;
 import cm.mobilemoney.service.ICompteService;
@@ -47,22 +49,22 @@ public class AccueilPanel extends JPanel {
         labelBienvenue = new JLabel("Bienvenue");
         labelBienvenue.setFont(new Font("Segoe UI", Font.PLAIN, 17));
         labelBienvenue.setForeground(Theme.BLANC);
-        labelBienvenue.setAlignmentX(Component.CENTER_ALIGNMENT);
+        labelBienvenue.setAlignmentX(CENTER_ALIGNMENT);
 
         labelDetails = new JLabel(" ");
         labelDetails.setFont(Theme.POLICE_SOUS_TITRE);
         labelDetails.setForeground(new Color(170, 190, 215));
-        labelDetails.setAlignmentX(Component.CENTER_ALIGNMENT);
+        labelDetails.setAlignmentX(CENTER_ALIGNMENT);
 
         JLabel labelSoldeTitre = new JLabel("SOLDE DISPONIBLE");
         labelSoldeTitre.setFont(new Font("Segoe UI", Font.BOLD, 12));
         labelSoldeTitre.setForeground(Theme.ORANGE_VIF);
-        labelSoldeTitre.setAlignmentX(Component.CENTER_ALIGNMENT);
+        labelSoldeTitre.setAlignmentX(CENTER_ALIGNMENT);
 
         labelSolde = new JLabel("-- FCFA");
         labelSolde.setFont(Theme.POLICE_MONTANT);
         labelSolde.setForeground(Theme.OR);
-        labelSolde.setAlignmentX(Component.CENTER_ALIGNMENT);
+        labelSolde.setAlignmentX(CENTER_ALIGNMENT);
 
         bandeau.add(labelBienvenue);
         bandeau.add(Box.createVerticalStrut(4));
@@ -81,7 +83,7 @@ public class AccueilPanel extends JPanel {
         // -- Raccourcis --
         JPanel grille = new JPanel(new GridLayout(1, 4, 20, 0));
         grille.setBackground(Theme.FOND_CLAIR);
-        grille.setAlignmentX(Component.CENTER_ALIGNMENT);
+        grille.setAlignmentX(CENTER_ALIGNMENT);
         grille.setMaximumSize(new Dimension(760, 130));
         grille.setPreferredSize(new Dimension(760, 130));
 
@@ -98,13 +100,13 @@ public class AccueilPanel extends JPanel {
         JLabel titreStats = new JLabel("Aperçu de votre activité");
         titreStats.setFont(new Font("Segoe UI", Font.BOLD, 16));
         titreStats.setForeground(Theme.BLEU_FONCE);
-        titreStats.setAlignmentX(Component.CENTER_ALIGNMENT);
+        titreStats.setAlignmentX(CENTER_ALIGNMENT);
         titreStats.setBorder(new EmptyBorder(35, 0, 14, 0));
 
         // -- Grille de statistiques --
         JPanel grilleStats = new JPanel(new GridLayout(1, 4, 16, 0));
         grilleStats.setBackground(Theme.FOND_CLAIR);
-        grilleStats.setAlignmentX(Component.CENTER_ALIGNMENT);
+        grilleStats.setAlignmentX(CENTER_ALIGNMENT);
         grilleStats.setMaximumSize(new Dimension(760, 95));
         grilleStats.setPreferredSize(new Dimension(760, 95));
 
@@ -143,15 +145,15 @@ public class AccueilPanel extends JPanel {
         ));
         carte.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-        JLabel labelSymbole = new JLabel(symbole, SwingConstants.CENTER);
+        JLabel labelSymbole = new JLabel(symbole, CENTER);
         labelSymbole.setFont(new Font("Segoe UI", Font.BOLD, 32));
         labelSymbole.setForeground(couleur);
-        labelSymbole.setAlignmentX(Component.CENTER_ALIGNMENT);
+        labelSymbole.setAlignmentX(CENTER_ALIGNMENT);
 
-        JLabel labelTexte = new JLabel(libelle, SwingConstants.CENTER);
+        JLabel labelTexte = new JLabel(libelle, CENTER);
         labelTexte.setFont(Theme.POLICE_CARTE_TITRE);
         labelTexte.setForeground(Theme.TEXTE_SOMBRE);
-        labelTexte.setAlignmentX(Component.CENTER_ALIGNMENT);
+        labelTexte.setAlignmentX(CENTER_ALIGNMENT);
 
         carte.add(labelSymbole);
         carte.add(Box.createVerticalStrut(8));
@@ -180,9 +182,9 @@ public class AccueilPanel extends JPanel {
     // ── Fabrication des cartes de statistique ─────────────────────────────────
 
     private JLabel creerValeurStat() {
-        JLabel label = new JLabel("--", SwingConstants.CENTER);
+        JLabel label = new JLabel("--", CENTER);
         label.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        label.setAlignmentX(Component.CENTER_ALIGNMENT);
+        label.setAlignmentX(CENTER_ALIGNMENT);
         return label;
     }
 
@@ -197,10 +199,10 @@ public class AccueilPanel extends JPanel {
 
         labelValeur.setForeground(couleurValeur);
 
-        JLabel labelTitre = new JLabel(libelle, SwingConstants.CENTER);
+        JLabel labelTitre = new JLabel(libelle, CENTER);
         labelTitre.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         labelTitre.setForeground(Theme.TEXTE_GRIS);
-        labelTitre.setAlignmentX(Component.CENTER_ALIGNMENT);
+        labelTitre.setAlignmentX(CENTER_ALIGNMENT);
 
         carte.add(labelValeur);
         carte.add(Box.createVerticalStrut(4));
@@ -224,6 +226,17 @@ public class AccueilPanel extends JPanel {
             labelSolde.setText("-- FCFA");
             reinitialiserStats();
             return;
+        }
+
+        if (compteService != null) {
+            try {
+                // Mise à jour du compte depuis la base de données pour rafraîchir le solde
+                compte = compteService.rechercherCompte(compte.getNumero());
+                if (this.parentFrame != null) {
+                    this.parentFrame.definirCompteConnecte(compte);
+                }
+            } catch (Exception ignored) {
+            }
         }
 
         DateTimeFormatter fmtDate = DateTimeFormatter.ofPattern("dd/MM/yyyy");

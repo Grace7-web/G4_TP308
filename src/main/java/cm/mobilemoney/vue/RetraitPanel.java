@@ -1,5 +1,7 @@
 package cm.mobilemoney.vue;
 
+import static javax.swing.SwingConstants.*;
+
 import cm.mobilemoney.exception.MobileMoneyException;
 import cm.mobilemoney.metier.Compte;
 import cm.mobilemoney.metier.Transaction;
@@ -46,21 +48,21 @@ public class RetraitPanel extends JPanel {
         carte.setBackground(Theme.BLANC);
         carte.setBorder(new EmptyBorder(35, 45, 30, 45));
 
-        JLabel symbole = new JLabel("-", SwingConstants.CENTER);
+        JLabel symbole = new JLabel("-", CENTER);
         symbole.setFont(new Font("Segoe UI", Font.BOLD, 36));
         symbole.setForeground(Theme.ROUGE_ERREUR);
-        symbole.setAlignmentX(Component.CENTER_ALIGNMENT);
+        symbole.setAlignmentX(CENTER_ALIGNMENT);
 
         JLabel titre = new JLabel("Effectuer un retrait");
         titre.setFont(new Font("Segoe UI", Font.BOLD, 22));
         titre.setForeground(Theme.BLEU_FONCE);
-        titre.setAlignmentX(Component.CENTER_ALIGNMENT);
+        titre.setAlignmentX(CENTER_ALIGNMENT);
 
         JLabel sousTitre = new JLabel(String.format(
                 "Commission de %.1f%% appliquée", CompteService.TAUX_COMMISSION_RETRAIT));
         sousTitre.setFont(Theme.POLICE_SOUS_TITRE);
         sousTitre.setForeground(Theme.TEXTE_GRIS);
-        sousTitre.setAlignmentX(Component.CENTER_ALIGNMENT);
+        sousTitre.setAlignmentX(CENTER_ALIGNMENT);
 
         styliserChamp(champCompte);
         styliserChamp(champMontant);
@@ -73,8 +75,8 @@ public class RetraitPanel extends JPanel {
         }
 
         labelMessage.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        labelMessage.setAlignmentX(Component.CENTER_ALIGNMENT);
-        labelMessage.setHorizontalAlignment(SwingConstants.CENTER);
+        labelMessage.setAlignmentX(CENTER_ALIGNMENT);
+        labelMessage.setHorizontalAlignment(CENTER);
 
         zoneRecap.setLayout(new BoxLayout(zoneRecap, BoxLayout.Y_AXIS));
         zoneRecap.setBackground(new Color(252, 240, 240));
@@ -83,12 +85,12 @@ public class RetraitPanel extends JPanel {
                 new EmptyBorder(14, 16, 14, 16)
         ));
         zoneRecap.setMaximumSize(new Dimension(LARGEUR_CHAMP, 100));
-        zoneRecap.setAlignmentX(Component.CENTER_ALIGNMENT);
+        zoneRecap.setAlignmentX(CENTER_ALIGNMENT);
         zoneRecap.setVisible(false);
 
         labelRecapTexte.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         labelRecapTexte.setForeground(Theme.TEXTE_SOMBRE);
-        labelRecapTexte.setAlignmentX(Component.CENTER_ALIGNMENT);
+        labelRecapTexte.setAlignmentX(CENTER_ALIGNMENT);
         zoneRecap.add(labelRecapTexte);
 
         JButton btnAction = new JButton("VÉRIFIER LE RETRAIT");
@@ -98,7 +100,7 @@ public class RetraitPanel extends JPanel {
         btnAction.setFocusPainted(false);
         btnAction.setBorderPainted(false);
         btnAction.setOpaque(true);
-        btnAction.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnAction.setAlignmentX(CENTER_ALIGNMENT);
         btnAction.setMaximumSize(new Dimension(LARGEUR_CHAMP, 42));
         btnAction.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -108,7 +110,7 @@ public class RetraitPanel extends JPanel {
         btnRetour.setBorderPainted(false);
         btnRetour.setContentAreaFilled(false);
         btnRetour.setFocusPainted(false);
-        btnRetour.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnRetour.setAlignmentX(CENTER_ALIGNMENT);
         btnRetour.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         btnAction.addActionListener(e -> {
@@ -191,27 +193,42 @@ public class RetraitPanel extends JPanel {
     }
 
     private void confirmerRetrait(ICompteService service, MainFrame parent, JButton btnAction) {
-        try {
-            Transaction transaction = service.retirer(numeroConfirme, montantConfirme);
+        btnAction.setEnabled(false);
+        labelMessage.setForeground(Theme.TEXTE_GRIS);
+        labelMessage.setText("Retrait en cours...");
 
-            JOptionPane.showMessageDialog(
-                    this,
-                    String.format("Retrait effectué avec succès !\n\nMontant : %,.0f FCFA\nCommission : %,.0f FCFA\nCompte : %s",
-                            transaction.getMontant(), transaction.getCommission(), numeroConfirme),
-                    "Retrait réussi",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
+        SwingWorker<Transaction, Void> worker = new SwingWorker<Transaction, Void>() {
+            @Override
+            protected Transaction doInBackground() throws Exception {
+                return service.retirer(numeroConfirme, montantConfirme);
+            }
 
-            reinitialiser(btnAction);
-            parent.afficherCarte(MainFrame.CARTE_ACCUEIL);
-
-        } catch (MobileMoneyException ex) {
-            afficherErreur(ex.getMessage());
-            zoneRecap.setVisible(false);
-            etapeRecap = false;
-            btnAction.setText("VÉRIFIER LE RETRAIT");
-            revalidate();
-        }
+            @Override
+            protected void done() {
+                btnAction.setEnabled(true);
+                try {
+                    Transaction transaction = get();
+                    JOptionPane.showMessageDialog(
+                            RetraitPanel.this,
+                            String.format("Retrait effectué avec succès !\n\nMontant : %,.0f FCFA\nCommission : %,.0f FCFA\nCompte : %s",
+                                    transaction.getMontant(), transaction.getCommission(), numeroConfirme),
+                            "Retrait réussi",
+                            JOptionPane.INFORMATION_MESSAGE
+                    );
+                    reinitialiser(btnAction);
+                    parent.afficherCarte(MainFrame.CARTE_ACCUEIL);
+                } catch (Exception ex) {
+                    Throwable cause = ex.getCause();
+                    String errorMsg = (cause instanceof MobileMoneyException) ? cause.getMessage() : "Erreur lors du retrait.";
+                    afficherErreur(errorMsg);
+                    zoneRecap.setVisible(false);
+                    etapeRecap = false;
+                    btnAction.setText("VÉRIFIER LE RETRAIT");
+                    revalidate();
+                }
+            }
+        };
+        worker.execute();
     }
 
     private void reinitialiser(JButton btnAction) {
@@ -231,15 +248,15 @@ public class RetraitPanel extends JPanel {
         JLabel label = new JLabel(texte);
         label.setFont(Theme.POLICE_LABEL);
         label.setForeground(Theme.TEXTE_SOMBRE);
-        label.setAlignmentX(Component.CENTER_ALIGNMENT);
+        label.setAlignmentX(CENTER_ALIGNMENT);
         return label;
     }
 
     private void styliserChamp(JTextField champ) {
         champ.setMaximumSize(new Dimension(LARGEUR_CHAMP, 36));
         champ.setPreferredSize(new Dimension(LARGEUR_CHAMP, 36));
-        champ.setAlignmentX(Component.CENTER_ALIGNMENT);
-        champ.setHorizontalAlignment(SwingConstants.CENTER);
+        champ.setAlignmentX(CENTER_ALIGNMENT);
+        champ.setHorizontalAlignment(CENTER);
         champ.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(206, 212, 218)),
                 new EmptyBorder(6, 8, 6, 8)

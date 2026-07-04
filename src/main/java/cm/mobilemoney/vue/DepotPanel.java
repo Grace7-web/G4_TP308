@@ -1,5 +1,7 @@
 package cm.mobilemoney.vue;
 
+import static javax.swing.SwingConstants.*;
+
 import cm.mobilemoney.exception.MobileMoneyException;
 import cm.mobilemoney.metier.Compte;
 import cm.mobilemoney.metier.Transaction;
@@ -50,20 +52,20 @@ public class DepotPanel extends JPanel {
         carte.setBorder(new EmptyBorder(35, 45, 30, 45));
 
         // ── En-tête avec icône et titre ────────────────────────────────────────
-        JLabel symbole = new JLabel("+", SwingConstants.CENTER);
+        JLabel symbole = new JLabel("+", CENTER);
         symbole.setFont(new Font("Segoe UI", Font.BOLD, 36));
         symbole.setForeground(Theme.VERT_SUCCES);
-        symbole.setAlignmentX(Component.CENTER_ALIGNMENT);
+        symbole.setAlignmentX(CENTER_ALIGNMENT);
 
         JLabel titre = new JLabel("Effectuer un dépôt");
         titre.setFont(new Font("Segoe UI", Font.BOLD, 22));
         titre.setForeground(Theme.BLEU_FONCE);
-        titre.setAlignmentX(Component.CENTER_ALIGNMENT);
+        titre.setAlignmentX(CENTER_ALIGNMENT);
 
         JLabel sousTitre = new JLabel("Créditez un compte Mobile Money");
         sousTitre.setFont(Theme.POLICE_SOUS_TITRE);
         sousTitre.setForeground(Theme.TEXTE_GRIS);
-        sousTitre.setAlignmentX(Component.CENTER_ALIGNMENT);
+        sousTitre.setAlignmentX(CENTER_ALIGNMENT);
 
         // ── Champs ─────────────────────────────────────────────────────────────
         styliserChamp(champCompte);
@@ -77,8 +79,8 @@ public class DepotPanel extends JPanel {
         }
 
         labelMessage.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        labelMessage.setAlignmentX(Component.CENTER_ALIGNMENT);
-        labelMessage.setHorizontalAlignment(SwingConstants.CENTER);
+        labelMessage.setAlignmentX(CENTER_ALIGNMENT);
+        labelMessage.setHorizontalAlignment(CENTER);
 
         // ── Zone de récapitulatif (cachée par défaut) ──────────────────────────
         zoneRecap.setLayout(new BoxLayout(zoneRecap, BoxLayout.Y_AXIS));
@@ -88,12 +90,12 @@ public class DepotPanel extends JPanel {
                 new EmptyBorder(14, 16, 14, 16)
         ));
         zoneRecap.setMaximumSize(new Dimension(LARGEUR_CHAMP, 80));
-        zoneRecap.setAlignmentX(Component.CENTER_ALIGNMENT);
+        zoneRecap.setAlignmentX(CENTER_ALIGNMENT);
         zoneRecap.setVisible(false);
 
         labelRecapTexte.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         labelRecapTexte.setForeground(Theme.TEXTE_SOMBRE);
-        labelRecapTexte.setAlignmentX(Component.CENTER_ALIGNMENT);
+        labelRecapTexte.setAlignmentX(CENTER_ALIGNMENT);
         zoneRecap.add(labelRecapTexte);
 
         // ── Bouton principal (texte dynamique selon l'étape) ───────────────────
@@ -104,7 +106,7 @@ public class DepotPanel extends JPanel {
         btnAction.setFocusPainted(false);
         btnAction.setBorderPainted(false);
         btnAction.setOpaque(true);
-        btnAction.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnAction.setAlignmentX(CENTER_ALIGNMENT);
         btnAction.setMaximumSize(new Dimension(LARGEUR_CHAMP, 42));
         btnAction.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -114,7 +116,7 @@ public class DepotPanel extends JPanel {
         btnRetour.setBorderPainted(false);
         btnRetour.setContentAreaFilled(false);
         btnRetour.setFocusPainted(false);
-        btnRetour.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnRetour.setAlignmentX(CENTER_ALIGNMENT);
         btnRetour.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         btnAction.addActionListener(e -> {
@@ -202,27 +204,42 @@ public class DepotPanel extends JPanel {
      * et affiche le résultat (succès ou message d'erreur métier).
      */
     private void confirmerDepot(ICompteService service, MainFrame parent, JButton btnAction) {
-        try {
-            Transaction transaction = service.deposer(numeroConfirme, montantConfirme);
+        btnAction.setEnabled(false);
+        labelMessage.setForeground(Theme.TEXTE_GRIS);
+        labelMessage.setText("Dépôt en cours...");
 
-            JOptionPane.showMessageDialog(
-                    this,
-                    String.format("Dépôt effectué avec succès !\n\nMontant : %,.0f FCFA\nCompte : %s",
-                            transaction.getMontant(), numeroConfirme),
-                    "Dépôt réussi",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
+        SwingWorker<Transaction, Void> worker = new SwingWorker<Transaction, Void>() {
+            @Override
+            protected Transaction doInBackground() throws Exception {
+                return service.deposer(numeroConfirme, montantConfirme);
+            }
 
-            reinitialiser(btnAction);
-            parent.afficherCarte(MainFrame.CARTE_ACCUEIL);
-
-        } catch (MobileMoneyException ex) {
-            afficherErreur(ex.getMessage());
-            zoneRecap.setVisible(false);
-            etapeRecap = false;
-            btnAction.setText("VÉRIFIER LE DÉPÔT");
-            revalidate();
-        }
+            @Override
+            protected void done() {
+                btnAction.setEnabled(true);
+                try {
+                    Transaction transaction = get();
+                    JOptionPane.showMessageDialog(
+                            DepotPanel.this,
+                            String.format("Dépôt effectué avec succès !\n\nMontant : %,.0f FCFA\nCompte : %s",
+                                    transaction.getMontant(), numeroConfirme),
+                            "Dépôt réussi",
+                            JOptionPane.INFORMATION_MESSAGE
+                    );
+                    reinitialiser(btnAction);
+                    parent.afficherCarte(MainFrame.CARTE_ACCUEIL);
+                } catch (Exception ex) {
+                    Throwable cause = ex.getCause();
+                    String errorMsg = (cause instanceof MobileMoneyException) ? cause.getMessage() : "Erreur lors du dépôt.";
+                    afficherErreur(errorMsg);
+                    zoneRecap.setVisible(false);
+                    etapeRecap = false;
+                    btnAction.setText("VÉRIFIER LE DÉPÔT");
+                    revalidate();
+                }
+            }
+        };
+        worker.execute();
     }
 
     private void reinitialiser(JButton btnAction) {
@@ -242,15 +259,15 @@ public class DepotPanel extends JPanel {
         JLabel label = new JLabel(texte);
         label.setFont(Theme.POLICE_LABEL);
         label.setForeground(Theme.TEXTE_SOMBRE);
-        label.setAlignmentX(Component.CENTER_ALIGNMENT);
+        label.setAlignmentX(CENTER_ALIGNMENT);
         return label;
     }
 
     private void styliserChamp(JTextField champ) {
         champ.setMaximumSize(new Dimension(LARGEUR_CHAMP, 36));
         champ.setPreferredSize(new Dimension(LARGEUR_CHAMP, 36));
-        champ.setAlignmentX(Component.CENTER_ALIGNMENT);
-        champ.setHorizontalAlignment(SwingConstants.CENTER);
+        champ.setAlignmentX(CENTER_ALIGNMENT);
+        champ.setHorizontalAlignment(CENTER);
         champ.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(206, 212, 218)),
                 new EmptyBorder(6, 8, 6, 8)

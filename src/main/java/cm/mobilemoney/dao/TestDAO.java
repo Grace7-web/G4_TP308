@@ -68,7 +68,7 @@ public class TestDAO {
         // → solde insuffisant → rollback SQL déclenché
         System.out.println("\n=== TEST 7 : ROLLBACK RÉEL (solde insuffisant) ===");
         try {
-            Transaction t = service.transferer("CM-004", "CM-002", 500000.0);
+            service.transferer("CM-004", "CM-002", 500000.0);
             System.out.println("❌ PROBLÈME : le transfert aurait dû échouer !");
         } catch (MobileMoneyException e) {
             System.out.println("✓ Rollback déclenché : " + e.getMessage());

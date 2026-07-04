@@ -50,7 +50,7 @@ public class MobileMoneyException extends Exception {
                     "Solde insuffisant. Solde actuel : %.2f FCFA. "
                             + "Montant requis (avec commission) : %.2f FCFA. "
                             + "Manque : %.2f FCFA.",
-                    soldeActuel, montantRequis, (montantRequis - soldeActuel)
+                    soldeActuel, montantRequis, montantRequis - soldeActuel
             ));
             this.soldeActuel   = soldeActuel;
             this.montantRequis = montantRequis;

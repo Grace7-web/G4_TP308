@@ -1,5 +1,7 @@
 package cm.mobilemoney.vue;
 
+import static javax.swing.SwingConstants.*;
+
 import cm.mobilemoney.exception.MobileMoneyException;
 import cm.mobilemoney.service.ICompteService;
 
@@ -68,8 +70,8 @@ public class MotDePasseOubliePanel extends JPanel {
         styliserChamp(champNumero);
 
         labelMessageEtape1.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        labelMessageEtape1.setAlignmentX(Component.CENTER_ALIGNMENT);
-        labelMessageEtape1.setHorizontalAlignment(SwingConstants.CENTER);
+        labelMessageEtape1.setAlignmentX(CENTER_ALIGNMENT);
+        labelMessageEtape1.setHorizontalAlignment(CENTER);
 
         JButton btnContinuer = creerBoutonPrincipal("CONTINUER");
         JButton btnRetour = creerBoutonLien("← Retour à la connexion");
@@ -129,8 +131,8 @@ public class MotDePasseOubliePanel extends JPanel {
 
         labelQuestion.setFont(new Font("Segoe UI", Font.BOLD, 13));
         labelQuestion.setForeground(Theme.BLEU_FONCE);
-        labelQuestion.setAlignmentX(Component.CENTER_ALIGNMENT);
-        labelQuestion.setHorizontalAlignment(SwingConstants.CENTER);
+        labelQuestion.setAlignmentX(CENTER_ALIGNMENT);
+        labelQuestion.setHorizontalAlignment(CENTER);
 
         JLabel labelReponse = creerLabelChamp("Votre réponse");
         styliserChamp(champReponse);
@@ -142,8 +144,8 @@ public class MotDePasseOubliePanel extends JPanel {
         styliserChamp(champConfirmationMdp);
 
         labelMessageEtape2.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        labelMessageEtape2.setAlignmentX(Component.CENTER_ALIGNMENT);
-        labelMessageEtape2.setHorizontalAlignment(SwingConstants.CENTER);
+        labelMessageEtape2.setAlignmentX(CENTER_ALIGNMENT);
+        labelMessageEtape2.setHorizontalAlignment(CENTER);
 
         JButton btnReinitialiser = creerBoutonPrincipal("RÉINITIALISER");
         JButton btnRetourEtape1 = creerBoutonLien("← Changer de compte");
@@ -242,7 +244,7 @@ public class MotDePasseOubliePanel extends JPanel {
         JLabel titre = new JLabel(texte);
         titre.setFont(new Font("Segoe UI", Font.BOLD, 22));
         titre.setForeground(Theme.BLEU_FONCE);
-        titre.setAlignmentX(Component.CENTER_ALIGNMENT);
+        titre.setAlignmentX(CENTER_ALIGNMENT);
         return titre;
     }
 
@@ -250,7 +252,7 @@ public class MotDePasseOubliePanel extends JPanel {
         JLabel sousTitre = new JLabel(texte);
         sousTitre.setFont(Theme.POLICE_SOUS_TITRE);
         sousTitre.setForeground(Theme.TEXTE_GRIS);
-        sousTitre.setAlignmentX(Component.CENTER_ALIGNMENT);
+        sousTitre.setAlignmentX(CENTER_ALIGNMENT);
         return sousTitre;
     }
 
@@ -259,7 +261,7 @@ public class MotDePasseOubliePanel extends JPanel {
         trait.setBackground(Theme.ORANGE_VIF);
         trait.setMaximumSize(new Dimension(50, 4));
         trait.setPreferredSize(new Dimension(50, 4));
-        trait.setAlignmentX(Component.CENTER_ALIGNMENT);
+        trait.setAlignmentX(CENTER_ALIGNMENT);
         return trait;
     }
 
@@ -271,7 +273,7 @@ public class MotDePasseOubliePanel extends JPanel {
         bouton.setFocusPainted(false);
         bouton.setBorderPainted(false);
         bouton.setOpaque(true);
-        bouton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        bouton.setAlignmentX(CENTER_ALIGNMENT);
         bouton.setMaximumSize(new Dimension(LARGEUR_CHAMP, 42));
         bouton.setPreferredSize(new Dimension(LARGEUR_CHAMP, 42));
         bouton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -285,7 +287,7 @@ public class MotDePasseOubliePanel extends JPanel {
         bouton.setBorderPainted(false);
         bouton.setContentAreaFilled(false);
         bouton.setFocusPainted(false);
-        bouton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        bouton.setAlignmentX(CENTER_ALIGNMENT);
         bouton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return bouton;
     }
@@ -294,15 +296,15 @@ public class MotDePasseOubliePanel extends JPanel {
         JLabel label = new JLabel(texte);
         label.setFont(Theme.POLICE_LABEL);
         label.setForeground(Theme.TEXTE_SOMBRE);
-        label.setAlignmentX(Component.CENTER_ALIGNMENT);
+        label.setAlignmentX(CENTER_ALIGNMENT);
         return label;
     }
 
     private void styliserChamp(JTextField champ) {
         champ.setMaximumSize(new Dimension(LARGEUR_CHAMP, 36));
         champ.setPreferredSize(new Dimension(LARGEUR_CHAMP, 36));
-        champ.setAlignmentX(Component.CENTER_ALIGNMENT);
-        champ.setHorizontalAlignment(SwingConstants.CENTER);
+        champ.setAlignmentX(CENTER_ALIGNMENT);
+        champ.setHorizontalAlignment(CENTER);
         champ.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(206, 212, 218)),
                 new EmptyBorder(6, 8, 6, 8)

@@ -1,5 +1,7 @@
 package cm.mobilemoney.vue;
 
+import static javax.swing.SwingConstants.*;
+
 import cm.mobilemoney.exception.MobileMoneyException;
 import cm.mobilemoney.metier.Compte;
 import cm.mobilemoney.service.ICompteService;
@@ -43,29 +45,29 @@ public class CreerComptePanel extends JPanel {
         carte.setBorder(new EmptyBorder(35, 45, 30, 45));
 
         // ── En-tête ────────────────────────────────────────────────────────────
-        JLabel symbole = new JLabel("＋", SwingConstants.CENTER);
+        JLabel symbole = new JLabel("＋", CENTER);
         symbole.setFont(new Font("Segoe UI", Font.BOLD, 34));
         symbole.setForeground(Theme.BLEU_MOYEN);
-        symbole.setAlignmentX(Component.CENTER_ALIGNMENT);
+        symbole.setAlignmentX(CENTER_ALIGNMENT);
 
         JLabel titre = new JLabel("Nouveau compte");
         titre.setFont(new Font("Segoe UI", Font.BOLD, 22));
         titre.setForeground(Theme.BLEU_FONCE);
-        titre.setAlignmentX(Component.CENTER_ALIGNMENT);
+        titre.setAlignmentX(CENTER_ALIGNMENT);
 
         JLabel sousTitre = new JLabel(
                 String.format("Dépôt minimum : %,.0f FCFA", Compte.SOLDE_MINIMUM));
         sousTitre.setFont(Theme.POLICE_SOUS_TITRE);
         sousTitre.setForeground(Theme.TEXTE_GRIS);
-        sousTitre.setAlignmentX(Component.CENTER_ALIGNMENT);
+        sousTitre.setAlignmentX(CENTER_ALIGNMENT);
 
         // ── Champs ─────────────────────────────────────────────────────────────
         styliserChamp(champNom);
         styliserChamp(champDepot);
 
         labelMessage.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        labelMessage.setAlignmentX(Component.CENTER_ALIGNMENT);
-        labelMessage.setHorizontalAlignment(SwingConstants.CENTER);
+        labelMessage.setAlignmentX(CENTER_ALIGNMENT);
+        labelMessage.setHorizontalAlignment(CENTER);
 
         // ── Zone résultat (numéro de compte généré) ───────────────────────────
         zoneResultat.setLayout(new BoxLayout(zoneResultat, BoxLayout.Y_AXIS));
@@ -75,18 +77,18 @@ public class CreerComptePanel extends JPanel {
                 new EmptyBorder(14, 16, 14, 16)
         ));
         zoneResultat.setMaximumSize(new Dimension(LARGEUR_CHAMP, 80));
-        zoneResultat.setAlignmentX(Component.CENTER_ALIGNMENT);
+        zoneResultat.setAlignmentX(CENTER_ALIGNMENT);
         zoneResultat.setVisible(false);
 
-        JLabel labelTitreNumero = new JLabel("Numéro de compte attribué :", SwingConstants.CENTER);
+        JLabel labelTitreNumero = new JLabel("Numéro de compte attribué :", CENTER);
         labelTitreNumero.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         labelTitreNumero.setForeground(Theme.TEXTE_GRIS);
-        labelTitreNumero.setAlignmentX(Component.CENTER_ALIGNMENT);
+        labelTitreNumero.setAlignmentX(CENTER_ALIGNMENT);
 
         labelNumeroGenere.setFont(new Font("Segoe UI", Font.BOLD, 16));
         labelNumeroGenere.setForeground(Theme.BLEU_FONCE);
-        labelNumeroGenere.setAlignmentX(Component.CENTER_ALIGNMENT);
-        labelNumeroGenere.setHorizontalAlignment(SwingConstants.CENTER);
+        labelNumeroGenere.setAlignmentX(CENTER_ALIGNMENT);
+        labelNumeroGenere.setHorizontalAlignment(CENTER);
 
         zoneResultat.add(labelTitreNumero);
         zoneResultat.add(Box.createVerticalStrut(5));
@@ -100,7 +102,7 @@ public class CreerComptePanel extends JPanel {
         btnCreer.setFocusPainted(false);
         btnCreer.setBorderPainted(false);
         btnCreer.setOpaque(true);
-        btnCreer.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnCreer.setAlignmentX(CENTER_ALIGNMENT);
         btnCreer.setMaximumSize(new Dimension(LARGEUR_CHAMP, 42));
         btnCreer.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -110,7 +112,7 @@ public class CreerComptePanel extends JPanel {
         btnNouvelleCreation.setBorderPainted(false);
         btnNouvelleCreation.setContentAreaFilled(false);
         btnNouvelleCreation.setFocusPainted(false);
-        btnNouvelleCreation.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnNouvelleCreation.setAlignmentX(CENTER_ALIGNMENT);
         btnNouvelleCreation.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnNouvelleCreation.setVisible(false);
 
@@ -120,7 +122,7 @@ public class CreerComptePanel extends JPanel {
         btnRetour.setBorderPainted(false);
         btnRetour.setContentAreaFilled(false);
         btnRetour.setFocusPainted(false);
-        btnRetour.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnRetour.setAlignmentX(CENTER_ALIGNMENT);
         btnRetour.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         // ── Actions ────────────────────────────────────────────────────────────
@@ -145,20 +147,37 @@ public class CreerComptePanel extends JPanel {
                 return;
             }
 
-            try {
-                Compte nouveauCompte = service.creerCompte(nom, depot);
+            btnCreer.setEnabled(false);
+            labelMessage.setForeground(Theme.TEXTE_GRIS);
+            labelMessage.setText("Création en cours...");
 
-                labelMessage.setText(" ");
-                labelNumeroGenere.setText(nouveauCompte.getNumero());
-                zoneResultat.setVisible(true);
-                btnCreer.setVisible(false);
-                btnNouvelleCreation.setVisible(true);
-                parent.definirStatut("Compte créé : " + nouveauCompte.getNumero());
-                revalidate();
+            SwingWorker<Compte, Void> worker = new SwingWorker<Compte, Void>() {
+                @Override
+                protected Compte doInBackground() throws Exception {
+                    return service.creerCompte(nom, depot);
+                }
 
-            } catch (MobileMoneyException | IllegalArgumentException ex) {
-                afficherErreur(ex.getMessage());
-            }
+                @Override
+                protected void done() {
+                    btnCreer.setEnabled(true);
+                    try {
+                        Compte nouveauCompte = get();
+                        labelMessage.setText(" ");
+                        labelNumeroGenere.setText(nouveauCompte.getNumero());
+                        zoneResultat.setVisible(true);
+                        btnCreer.setVisible(false);
+                        btnNouvelleCreation.setVisible(true);
+                        parent.definirStatut("Compte créé : " + nouveauCompte.getNumero());
+                        revalidate();
+                    } catch (Exception ex) {
+                        Throwable cause = ex.getCause();
+                        String errorMsg = (cause instanceof MobileMoneyException || cause instanceof IllegalArgumentException)
+                                ? cause.getMessage() : "Erreur lors de la création.";
+                        afficherErreur(errorMsg);
+                    }
+                }
+            };
+            worker.execute();
         });
 
         btnNouvelleCreation.addActionListener(e -> {
@@ -209,15 +228,15 @@ public class CreerComptePanel extends JPanel {
         JLabel label = new JLabel(texte);
         label.setFont(Theme.POLICE_LABEL);
         label.setForeground(Theme.TEXTE_SOMBRE);
-        label.setAlignmentX(Component.CENTER_ALIGNMENT);
+        label.setAlignmentX(CENTER_ALIGNMENT);
         return label;
     }
 
     private void styliserChamp(JTextField champ) {
         champ.setMaximumSize(new Dimension(LARGEUR_CHAMP, 36));
         champ.setPreferredSize(new Dimension(LARGEUR_CHAMP, 36));
-        champ.setAlignmentX(Component.CENTER_ALIGNMENT);
-        champ.setHorizontalAlignment(SwingConstants.CENTER);
+        champ.setAlignmentX(CENTER_ALIGNMENT);
+        champ.setHorizontalAlignment(CENTER);
         champ.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(206, 212, 218)),
                 new EmptyBorder(6, 8, 6, 8)

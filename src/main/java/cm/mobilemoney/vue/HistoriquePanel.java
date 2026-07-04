@@ -1,5 +1,6 @@
 package cm.mobilemoney.vue;
 
+
 import cm.mobilemoney.exception.MobileMoneyException;
 import cm.mobilemoney.metier.Compte;
 import cm.mobilemoney.metier.Transaction;
@@ -221,7 +222,7 @@ public class HistoriquePanel extends JPanel {
             Component c = super.getTableCellRendererComponent(
                     table, value, isSelected, hasFocus, row, column);
 
-            setHorizontalAlignment(column == 4 || column == 5 ? SwingConstants.RIGHT : SwingConstants.LEFT);
+            setHorizontalAlignment(column == 4 || column == 5 ? RIGHT : LEFT);
 
             if (!isSelected) {
                 String type = String.valueOf(table.getValueAt(row, 1));

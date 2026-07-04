@@ -1,5 +1,7 @@
 package cm.mobilemoney.vue;
 
+import static javax.swing.SwingConstants.*;
+
 import cm.mobilemoney.exception.MobileMoneyException;
 import cm.mobilemoney.metier.Compte;
 import cm.mobilemoney.service.ICompteService;
@@ -98,7 +100,7 @@ public class ListeComptesPanel extends JPanel {
 
         // Centrer colonnes Solde et Statut
         DefaultTableCellRenderer centreRenderer = new DefaultTableCellRenderer();
-        centreRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        centreRenderer.setHorizontalAlignment(CENTER);
         table.getColumnModel().getColumn(2).setCellRenderer(centreRenderer);
         table.getColumnModel().getColumn(4).setCellRenderer(new RendererStatutCompte());
 
@@ -208,7 +210,7 @@ public class ListeComptesPanel extends JPanel {
                     table, value, isSelected, hasFocus, row, column);
 
             setHorizontalAlignment(column == 2 || column == 4
-                    ? SwingConstants.CENTER : SwingConstants.LEFT);
+                    ? CENTER : LEFT);
 
             if (!isSelected) {
                 String statut = String.valueOf(table.getValueAt(row, 4));
